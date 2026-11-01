@@ -18,6 +18,21 @@ from typing import Dict, Optional, Type
 import pandas as pd
 
 
+def make_forecast_index(
+    index: pd.DatetimeIndex, steps: int, frequency: Optional[str] = None
+) -> pd.DatetimeIndex:
+    """Create forecast timestamps at the training index frequency."""
+    if frequency is None:
+        frequency = index.freqstr
+    if frequency is None and len(index) >= 3:
+        try:
+            frequency = pd.infer_freq(index)
+        except ValueError:
+            pass
+    frequency = frequency or "D"
+    return pd.date_range(start=index[-1], periods=steps + 1, freq=frequency)[1:]
+
+
 class FrequencyHandler(ABC):
     """
     Abstract base class for frequency-specific data processing.

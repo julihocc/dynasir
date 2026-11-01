@@ -26,6 +26,7 @@ class BaseModel(ABC):
         start: Optional[str] = None,
         stop: Optional[str] = None,
         days_to_forecast: Optional[int] = None,
+        steps_to_forecast: Optional[int] = None,
     ):
         """
         Initialize the base model.
@@ -34,18 +35,38 @@ class BaseModel(ABC):
             data_container: DataContainer with processed epidemiological data
             start: Start date for modeling period (ISO format)
             stop: Stop date for modeling period (ISO format)
-            days_to_forecast: Number of days to forecast ahead
+            days_to_forecast: Backward-compatible alias for forecast periods
+            steps_to_forecast: Number of data periods to forecast ahead
         """
         self.data_container = data_container
         self.start = start
         self.stop = stop
-        self.days_to_forecast = days_to_forecast
+        if (
+            days_to_forecast is not None
+            and steps_to_forecast is not None
+            and days_to_forecast != steps_to_forecast
+        ):
+            raise ValueError(
+                "days_to_forecast and steps_to_forecast cannot specify different values"
+            )
+        self.steps_to_forecast = (
+            steps_to_forecast if steps_to_forecast is not None else days_to_forecast
+        )
 
         # Initialize common attributes that will be set during model lifecycle
         self.data: Optional[pd.DataFrame] = None
         self.fitted_model: Optional[Any] = None
         self.forecasting_results: Optional[Dict[str, Any]] = None
         self.simulation_results: Optional[Dict[str, Any]] = None
+
+    @property
+    def days_to_forecast(self) -> Optional[int]:
+        """Backward-compatible alias for the frequency-independent forecast steps."""
+        return self.steps_to_forecast
+
+    @days_to_forecast.setter
+    def days_to_forecast(self, value: Optional[int]) -> None:
+        self.steps_to_forecast = value
 
     @abstractmethod
     def create_model(self, *args, **kwargs) -> None:

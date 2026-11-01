@@ -21,6 +21,8 @@ from dynasir.core.constants import (
 )
 from dynasir.core.exceptions import NotDataFrameError
 
+from .data.frequency_handlers import make_forecast_index
+
 
 def prepare_for_logit_function(data):
     logging.debug(f"Filtering data for {LOGIT_RATIOS}")
@@ -325,10 +327,19 @@ class Model:
         self.forecasting_interval = None
         self.forecast_index_stop = None
         self.forecast_index_start = None
-        self.days_to_forecast = days_to_forecast
+        self.steps_to_forecast = days_to_forecast
         self.logit_ratios_model = None
         self.logit_ratios_model_fitted = None
         self.forecasted_logit_ratios = None
+
+    @property
+    def days_to_forecast(self):
+        """Backward-compatible alias for the frequency-independent forecast steps."""
+        return self.steps_to_forecast
+
+    @days_to_forecast.setter
+    def days_to_forecast(self, value):
+        self.steps_to_forecast = value
 
         self.data = reindex_data(data_container.data, start, stop)
         self.logit_ratios_values = self.data[LOGIT_RATIOS].values
@@ -338,24 +349,27 @@ class Model:
 
     def fit_logit_ratios_model(self, *args, **kwargs):
         self.logit_ratios_model_fitted = self.logit_ratios_model.fit(*args, **kwargs)
-        if self.days_to_forecast is None:
-            self.days_to_forecast = self.logit_ratios_model_fitted.k_ar + self.window
+        if self.steps_to_forecast is None:
+            self.steps_to_forecast = self.logit_ratios_model_fitted.k_ar + self.window
 
     def forecast_logit_ratios(self, steps=None, **kwargs):
-        if steps:
-            self.days_to_forecast = steps
-        last_date = self.data.index[-1]
-        self.forecast_index_start = last_date + pd.Timedelta(days=1)
-        self.forecast_index_stop = last_date + pd.Timedelta(days=self.days_to_forecast)
-        self.forecasting_interval = pd.date_range(
-            start=self.forecast_index_start,
-            end=self.forecast_index_stop,
-            freq="D",
+        if steps is not None:
+            self.steps_to_forecast = steps
+        self.forecasting_interval = make_forecast_index(
+            self.data.index,
+            self.steps_to_forecast,
+            getattr(self.data_container, "frequency", None),
+        )
+        self.forecast_index_start = (
+            self.forecasting_interval[0] if len(self.forecasting_interval) else None
+        )
+        self.forecast_index_stop = (
+            self.forecasting_interval[-1] if len(self.forecasting_interval) else None
         )
         try:
             self.forecasted_logit_ratios_tuple_arrays = (
                 self.logit_ratios_model_fitted.forecast_interval(
-                    self.logit_ratios_values, self.days_to_forecast, **kwargs
+                    self.logit_ratios_values, self.steps_to_forecast, **kwargs
                 )
             )
         except Exception as e:

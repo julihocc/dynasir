@@ -137,7 +137,7 @@ class BaseForecaster(ABC):
         components (especially EpidemicSimulation).
 
         Args:
-            steps: Number of forecast steps (days) into the future
+            steps: Number of forecast periods into the future
             **kwargs: Backend-specific forecast parameters
                      Common kwargs:
                      - alpha (float): Significance level for CI (default 0.05)

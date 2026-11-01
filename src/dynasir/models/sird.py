@@ -18,7 +18,7 @@ from ..core.constants import COMPARTMENTS, FORECASTING_LEVELS, LOGIT_RATIOS
 from ..data.preprocessing import reindex_data
 from .base import BaseModel, SIRDModelMixin
 from .forecasting.orchestrator import ForecastingOrchestrator
-from .simulation import EpidemicSimulation
+from .simulation import EpidemicSimulation, _warn_if_flat_median_incidence_forecast
 from .var_forecasting import VARForecasting  # Keep for backward compat
 
 
@@ -120,6 +120,7 @@ class Model(BaseModel, SIRDModelMixin):
         days_to_forecast: Optional[int] = None,
         forecaster: str = "var",
         importation_rate: float = 0.0,
+        steps_to_forecast: Optional[int] = None,
         **forecaster_kwargs,
     ):
         """
@@ -137,8 +138,10 @@ class Model(BaseModel, SIRDModelMixin):
                   If None, uses first available date in data.
             stop: Stop date for model training (YYYY-MM-DD format).
                  If None, uses last available date in data.
-            days_to_forecast: Number of days to forecast ahead.
-                            If None, determined by model.forecast(steps=N)
+            days_to_forecast: Backward-compatible alias for the forecast period
+                              count. Prefer steps_to_forecast.
+            steps_to_forecast: Number of data periods to forecast. Preferred
+                               frequency-independent alternative to days_to_forecast.
             forecaster: Forecasting backend to use. Options:
                 - 'var' (default): Vector Autoregression (statsmodels VAR)
                   Fast, reliable, no external dependencies
@@ -187,7 +190,17 @@ class Model(BaseModel, SIRDModelMixin):
         self.stop = stop
 
         # Model parameters
-        self.days_to_forecast = days_to_forecast
+        if (
+            days_to_forecast is not None
+            and steps_to_forecast is not None
+            and days_to_forecast != steps_to_forecast
+        ):
+            raise ValueError(
+                "days_to_forecast and steps_to_forecast cannot specify different values"
+            )
+        self.steps_to_forecast = (
+            steps_to_forecast if steps_to_forecast is not None else days_to_forecast
+        )
         self.importation_rate = importation_rate
 
         # Forecasting configuration
@@ -236,9 +249,10 @@ class Model(BaseModel, SIRDModelMixin):
             self.window,
             active_logit_ratios=available_logit_ratios,
             backend=forecaster,
+            frequency=self.data.index.freqstr or data_container.frequency,
         )
-        if self.days_to_forecast:
-            self.var_forecasting.days_to_forecast = self.days_to_forecast
+        if self.steps_to_forecast is not None:
+            self.var_forecasting.steps_to_forecast = self.steps_to_forecast
 
         # Results and simulation attributes (set during model execution)
         self.results: Optional[Box] = None
@@ -414,7 +428,7 @@ class Model(BaseModel, SIRDModelMixin):
                 self.var_forecasting.create_logit_ratios_model()
 
         self.var_forecasting.fit_logit_ratios_model(*args, **merged_kwargs)
-        self.days_to_forecast = self.var_forecasting.days_to_forecast
+        self.steps_to_forecast = self.var_forecasting.steps_to_forecast
 
     def fit_logit_ratios_model(self, *args, **kwargs) -> None:
         """DEPRECATED: Use fit_model() instead.
@@ -438,7 +452,7 @@ class Model(BaseModel, SIRDModelMixin):
         rates and initializes the simulation engine for downstream simulations.
 
         Args:
-            steps: Number of forecast steps (days). If None, uses previously set value.
+            steps: Number of forecast periods. If None, uses the configured horizon.
 
         Examples:
             >>> model.create_model()
@@ -446,6 +460,7 @@ class Model(BaseModel, SIRDModelMixin):
             >>> model.forecast(steps=30)
         """
         self.var_forecasting.forecast_logit_ratios(steps, **kwargs)
+        self.steps_to_forecast = self.var_forecasting.steps_to_forecast
         self.forecasting_box = self.var_forecasting.forecasting_box
         self.forecasting_interval = self.var_forecasting.forecasting_interval
         self.forecast_index_stop = self.var_forecasting.forecast_index_stop
@@ -572,7 +587,7 @@ class Model(BaseModel, SIRDModelMixin):
                 "start": self.start,
                 "stop": self.stop,
                 "window": self.window,
-                "days_to_forecast": self.days_to_forecast,
+                "steps_to_forecast": self.steps_to_forecast,
                 "has_vaccination": self.has_vaccination,
                 "forecaster": self.forecaster_name,  # Include backend in cache key
                 "forecaster_kwargs": self.forecaster_kwargs,  # Include config in cache key
@@ -625,9 +640,9 @@ class Model(BaseModel, SIRDModelMixin):
                 "start": str(self.start) if self.start else None,
                 "stop": str(self.stop) if self.stop else None,
                 "window": int(self.window) if self.window is not None else None,
-                "days_to_forecast": (
-                    int(self.days_to_forecast)
-                    if self.days_to_forecast is not None
+                "steps_to_forecast": (
+                    int(self.steps_to_forecast)
+                    if self.steps_to_forecast is not None
                     else None
                 ),
             }
@@ -671,6 +686,8 @@ class Model(BaseModel, SIRDModelMixin):
                     logging.info("Saved results to cache: %s", cdir)
                 except Exception as e:
                     logging.error("Result cache save failed: %s", e, exc_info=True)
+        elif self.results is not None:
+            _warn_if_flat_median_incidence_forecast(self.data, self.results)
 
     def calculate_R0(self) -> pd.Series:
         """Calculate basic reproduction number R₀(t) = α(t) / (β(t) + γ(t)).

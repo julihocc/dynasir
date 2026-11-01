@@ -365,6 +365,27 @@ model.run_simulations(n_jobs=4)
 model.run_simulations(n_jobs=1)
 ```
 
+On Windows, multiprocessing uses the `spawn` start method. Scripts that use
+parallel simulations must put the application entry point behind a `__main__`
+guard; otherwise child processes can re-import and re-run the script. In
+notebooks, interactive sessions, or scripts that cannot use this guard, run
+simulations with `n_jobs=1`.
+
+```python
+def main():
+    model.run_simulations()  # Parallel execution is safe inside the guarded entry point
+
+
+if __name__ == "__main__":
+    main()
+```
+
+For short annual incidence series, forecasts may have a flat median or rapidly
+widening scenario ranges. DynaSIR does not have a validated universal minimum
+sample size for annual forecasting; use annual-data results as uncertain
+scenarios rather than precise outbreak predictions. A flat median infected
+forecast is logged as a warning when the training data varied.
+
 ---
 
 ## Incidence Mode (v0.9.0+)

@@ -249,7 +249,7 @@ class ProphetForecaster(BaseForecaster):
         trend uncertainty and extrapolation of seasonality uncertainty.
 
         Args:
-            steps: Number of forecast steps (days)
+            steps: Number of forecast periods
             alpha: Significance level for confidence intervals (default 0.05 for 95% CI)
             **kwargs: Additional forecast parameters (not commonly used with Prophet)
 

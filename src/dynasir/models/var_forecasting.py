@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from ..core.constants import FORECASTING_LEVELS, LOGIT_RATIOS
+from ..data.frequency_handlers import make_forecast_index
 from ..utils.transformations import logistic_function
 from .forecasting.var import VARForecaster
 
@@ -46,8 +47,17 @@ class VARForecasting:
         self.forecasting_interval: Optional[pd.DatetimeIndex] = None
         self.forecast_index_stop: Optional[pd.Timestamp] = None
         self.forecast_index_start: Optional[pd.Timestamp] = None
-        self.days_to_forecast: Optional[int] = None
+        self.steps_to_forecast: Optional[int] = None
         self.forecasting_box: Optional[Dict[str, pd.DataFrame]] = None
+
+    @property
+    def days_to_forecast(self) -> Optional[int]:
+        """Backward-compatible alias for the frequency-independent forecast steps."""
+        return self.steps_to_forecast
+
+    @days_to_forecast.setter
+    def days_to_forecast(self, value: Optional[int]) -> None:
+        self.steps_to_forecast = value
 
     @property
     def logit_ratios_model(self):
@@ -83,30 +93,31 @@ class VARForecasting:
 
         self.forecaster.fit(*args, **kwargs)
 
-        if self.days_to_forecast is None:
-            self.days_to_forecast = self.forecaster.k_ar + self.window
+        if self.steps_to_forecast is None:
+            self.steps_to_forecast = self.forecaster.k_ar + self.window
 
     def forecast_logit_ratios(self, steps: Optional[int] = None, **kwargs) -> None:
         """
         Generate forecasts for logit-transformed rates.
 
         Args:
-            steps: Number of steps to forecast (overrides days_to_forecast)
+            steps: Number of forecast periods (overrides the configured horizon)
             **kwargs: Keyword arguments for forecast_interval()
         """
-        if steps:
-            self.days_to_forecast = steps
-        last_date = self.data.index[-1]
-        self.forecast_index_start = last_date + pd.Timedelta(days=1)
-        self.forecast_index_stop = last_date + pd.Timedelta(days=self.days_to_forecast)
-        self.forecasting_interval = pd.date_range(
-            start=self.forecast_index_start,
-            end=self.forecast_index_stop,
-            freq="D",
+        if steps is not None:
+            self.steps_to_forecast = steps
+        self.forecasting_interval = make_forecast_index(
+            self.data.index, self.steps_to_forecast
+        )
+        self.forecast_index_start = (
+            self.forecasting_interval[0] if len(self.forecasting_interval) else None
+        )
+        self.forecast_index_stop = (
+            self.forecasting_interval[-1] if len(self.forecasting_interval) else None
         )
         try:
             self.forecasted_logit_ratios_tuple_arrays = (
-                self.forecaster.forecast_interval(self.days_to_forecast, **kwargs)
+                self.forecaster.forecast_interval(self.steps_to_forecast, **kwargs)
             )
         except Exception as e:
             raise Exception(e)

@@ -73,6 +73,13 @@ class TestModelInitialization:
 
         # Assert
         assert model.days_to_forecast == days_to_forecast
+        assert model.steps_to_forecast == days_to_forecast
+
+    def test_model_init_with_forecast_steps(self, sample_data_container):
+        model = Model(sample_data_container, steps_to_forecast=14)
+
+        assert model.steps_to_forecast == 14
+        assert model.days_to_forecast == 14
 
     def test_model_init_sets_logit_ratios_values(self, sample_data_container):
         """Test that Model extracts logit ratios values correctly."""

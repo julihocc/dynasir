@@ -260,7 +260,7 @@ class ARIMAForecaster(BaseForecaster):
         distributed errors.
 
         Args:
-            steps: Number of forecast steps (days)
+            steps: Number of forecast periods
             alpha: Significance level for confidence intervals (default 0.05 for 95% CI)
             **kwargs: Additional forecast parameters:
                 return_conf_int: Always True (internal)

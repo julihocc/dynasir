@@ -139,6 +139,11 @@ class TestAnnualIncidenceNativeSupport:
         # Step 3: Forecast (5 years = 5 periods, not 1825 days)
         model.forecast(steps=5)
         assert model.var_forecasting.forecasting_interval is not None
+        assert model.forecasting_interval.equals(
+            pd.date_range("2025-12-31", periods=5, freq="YE")
+        )
+        assert model.steps_to_forecast == 5
+        assert model.days_to_forecast == 5
 
         # Step 4: Run simulations
         model.run_simulations(n_jobs=1)
