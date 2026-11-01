@@ -17,6 +17,29 @@ from ..core.config import get_settings
 from ..core.constants import COMPARTMENTS, FORECASTING_LEVELS
 
 
+def _warn_if_flat_median_incidence_forecast(
+    data: pd.DataFrame, results: Dict[str, pd.DataFrame]
+) -> None:
+    if "I" not in results or "I" not in data:
+        return
+
+    historical = data["I"].dropna().to_numpy()
+    median_forecast = results["I"]["median"].to_numpy()
+    if (
+        len(historical) > 1
+        and np.ptp(historical) > 0
+        and len(median_forecast) > 1
+        and np.allclose(median_forecast, median_forecast[0])
+    ):
+        logging.warning(
+            "The median infected forecast is flat across %d periods despite "
+            "variation in the training data. This does not rule out future "
+            "outbreaks; interpret the forecast cautiously and consider "
+            "additional data or external importation assumptions.",
+            len(median_forecast),
+        )
+
+
 def _run_single_simulation(
     data: pd.DataFrame,
     forecasting_box: Dict[str, pd.DataFrame],
@@ -466,3 +489,6 @@ class EpidemicSimulation:
 
         for compartment in available_compartments:
             self.results[compartment] = self.create_results_dataframe(compartment)
+
+        if self.results is not None:
+            _warn_if_flat_median_incidence_forecast(self.data, self.results)

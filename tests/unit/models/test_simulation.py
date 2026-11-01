@@ -3,6 +3,7 @@ Unit tests for the EpidemicSimulation class.
 """
 
 import itertools
+import logging
 
 import numpy as np
 import pandas as pd
@@ -152,3 +153,34 @@ class TestEpidemicSimulation:
         for compartment in compartments:
             assert compartment in results
             assert isinstance(results[compartment], pd.DataFrame)
+
+    def test_warns_for_flat_median_incidence_forecast(self, caplog):
+        """Warn when the median infected forecast is flat despite historical variation."""
+        forecast_index = pd.date_range("2020-01-01", periods=2, freq="D")
+        historical = pd.DataFrame(
+            {
+                "A": [100.0, 100.0],
+                "C": [1.0, 3.0],
+                "S": [99.0, 97.0],
+                "I": [1.0, 3.0],
+                "R": [0.0, 0.0],
+                "D": [0.0, 0.0],
+                "alpha": [0.0, 0.0],
+                "beta": [0.0, 0.0],
+                "gamma": [0.0, 0.0],
+            },
+            index=pd.date_range("2019-12-30", periods=2, freq="D"),
+        )
+        forecast_rates = {
+            rate: pd.DataFrame(
+                0.0, index=forecast_index, columns=["lower", "point", "upper"]
+            )
+            for rate in ("alpha", "beta", "gamma")
+        }
+        simulation = EpidemicSimulation(historical, forecast_rates, forecast_index)
+
+        simulation.run_simulations(n_jobs=1)
+        with caplog.at_level(logging.WARNING):
+            simulation.generate_result()
+
+        assert "median infected forecast is flat across 2 periods" in caplog.text
