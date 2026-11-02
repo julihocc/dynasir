@@ -284,6 +284,17 @@ def test_numpy_array_conversion():
     assert "C" in evaluation
 
 
+def test_evaluate_forecast_read_only_arrays(sample_results, sample_testing_data):
+    """Test evaluation with read-only pandas-backed arrays."""
+    for frame in (*sample_results.values(), sample_testing_data):
+        for column in frame.columns:
+            frame[column].values.setflags(write=False)
+
+    evaluation = evaluate_forecast(sample_results, sample_testing_data)
+
+    assert "C" in evaluation
+
+
 def test_backward_compatibility_imports():
     """Test that analysis functions maintain backward compatibility."""
     # Should be able to import from analysis module
