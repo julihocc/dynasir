@@ -232,8 +232,8 @@ annual_data = pd.DataFrame({
     "N": [330000000] * 40,                                # Population
 }, index=pd.date_range("1980", periods=40, freq="YE"))  # Year-end
 
-# 2. Create container with incidence mode (v0.10.0+)
-container = DataContainer(annual_data, mode='incidence', window=3)
+# 2. Create container with incidence mode (annual data is not smoothed)
+container = DataContainer(annual_data, mode='incidence', frequency='YE')
 
 # 3. Create model and forecast - works natively with annual frequency!
 model = Model(container, start="1990", stop="2015")
@@ -244,7 +244,8 @@ model.run_simulations(n_jobs=1)
 model.generate_result()
 
 # 4. Results are already in annual frequency - no aggregation needed!
-print(model.results['I'])  # Incident cases forecast
+print(model.results['I'])  # Annual incident cases forecast
+print(model.calculate_R0())  # About I(t+1)/I(t): a year-to-year ratio
 # Forecast values depend on the input data and model fit.
 ```
 
@@ -265,13 +266,22 @@ print(model.results['I'])  # Incident cases forecast
 
 **3. Native annual workflow**
 ```python
-container = DataContainer(measles_data, mode='incidence', window=3)
+container = DataContainer(measles_data, mode='incidence', frequency='YE')
 model = Model(container)
 model.create_model()
 model.fit_model(max_lag=3)
 model.forecast(steps=5)
 # No reindexing or aggregation is needed; validate forecast skill separately.
 ```
+
+**4. Period-cohort rates (next release)**
+
+Annual and monthly incidence is modelled as period cohorts: each period's
+cases are the infectious group for the step to the next period. The infection
+rate is estimated from the data, R0 rises before outbreaks, `results['I']` is
+period incidence, and `Model(stop=...)` uses no data after `stop`. Zero-case
+periods raise a warning; `DataContainer(..., incidence_offset=1)` keeps the
+rates defined. See [Known Limitations](user-guide/known-limitations.md).
 
 ### Short Annual Series: Validate Before Interpreting
 
@@ -337,7 +347,8 @@ desired outbreak forecast.
 
 ✅ **DO:**
 - Use `mode='incidence'` for incident cases (e.g., measles)
-- Use `window=3` for smoothing annual data (3-year moving average)
+- Leave `window` unset: annual data is not smoothed, and a requested window is ignored with a warning
+- Pass `incidence_offset` when some years have zero cases, and report it
 - Set reasonable `max_lag` for annual frequency (2-4 years)
 - Verify fractional recovery lag is applied correctly
 
@@ -467,8 +478,8 @@ data = pd.DataFrame({
     'N': [120_000_000] * 15
 }, index=dates)
 
-# Create container with incidence mode
-container = DataContainer(data, mode='incidence', window=3)
+# Create container with incidence mode (zero-case years: see incidence_offset)
+container = DataContainer(data, mode='incidence', frequency='YE', incidence_offset=1)
 
 # Standard workflow (no changes!)
 model = Model(container)
