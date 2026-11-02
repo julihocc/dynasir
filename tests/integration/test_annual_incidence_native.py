@@ -98,7 +98,7 @@ class TestAnnualIncidenceNativeSupport:
         Before the fix, this would fail with:
         LinAlgError: 1-th leading minor of the array is not positive definite
 
-        After the fix, VAR should fit with trend='n' due to constant alpha.
+        Constant rate columns are now left out of the VAR and held fixed (#168).
         """
         container = DataContainer(
             measles_annual_data, mode="incidence", frequency="YE", window=1
@@ -168,7 +168,7 @@ class TestAnnualIncidenceNativeSupport:
         Test that constant alpha column is detected and handled.
 
         Annual + incidence mode causes alpha = 1.0 (constant) due to
-        fractional recovery lag. VAR should automatically use trend='n'.
+        fractional recovery lag. The VAR leaves it out and holds it fixed.
         """
         container = DataContainer(
             measles_annual_data, mode="incidence", frequency="YE", window=1
@@ -184,7 +184,7 @@ class TestAnnualIncidenceNativeSupport:
         model = Model(container)
         model.create_model()
 
-        # Should log warning about constant columns and use trend='n'
+        # Should log a warning about constant columns and hold them fixed
         # (We can't easily check logs, but we can verify it doesn't crash)
         model.fit_model(max_lag=3)
 

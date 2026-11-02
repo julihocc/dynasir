@@ -12,6 +12,7 @@ from typing import Any, Dict, Optional
 import numpy as np
 import pandas as pd
 
+from ...core.config import get_settings
 from ...core.constants import FORECASTING_LEVELS, LOGIT_RATIOS
 from ...data.frequency_handlers import make_forecast_index
 from ...utils.transformations import logistic_function
@@ -146,6 +147,8 @@ class ForecastingOrchestrator:
             )
 
         self.forecaster: BaseForecaster = forecaster_class(logit_ratios_values)
+        if hasattr(self.forecaster, "column_names"):
+            self.forecaster.column_names = list(self.active_logit_ratios)
 
         # State attributes (populated during execution)
         self.forecasted_logit_ratios_tuple_arrays: Optional[Any] = None
@@ -278,7 +281,8 @@ class ForecastingOrchestrator:
         Args:
             steps: Number of forecast periods. If provided, overrides the configured horizon.
             **kwargs: Backend-specific forecast parameters
-                     Common: alpha (significance level for CI, default 0.05)
+                     Common: alpha (significance level for CI; defaults to
+                     the FORECASTER_ALPHA setting, 0.05)
                      Backend-specific: passed to forecast_interval()
 
         Raises:
@@ -297,6 +301,8 @@ class ForecastingOrchestrator:
         """
         if steps is not None:
             self.steps_to_forecast = steps
+
+        kwargs.setdefault("alpha", get_settings().FORECASTER_ALPHA)
 
         self.forecasting_interval = make_forecast_index(
             self.data.index, self.steps_to_forecast, self.frequency

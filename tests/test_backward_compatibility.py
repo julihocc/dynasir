@@ -96,11 +96,14 @@ def test_forecast_equivalence_covid_current_vs_reference(sample_data_container) 
     alpha_lower = np.asarray(model.forecasting_box["alpha"]["lower"])
     alpha_upper = np.asarray(model.forecasting_box["alpha"]["upper"])
 
+    # The v0.7.0 reference was produced while the VAR backend swapped the
+    # statsmodels (point, lower, upper) tuple (#175): its "alpha_lower" holds
+    # the point forecast and its "alpha_point" holds the lower bound.
     _assert_arrays_close(
-        alpha_point, ref["alpha_point"], atol=POINT_ATOL, rtol=POINT_RTOL
+        alpha_point, np.asarray(ref["alpha_lower"]), atol=POINT_ATOL, rtol=POINT_RTOL
     )
     _assert_arrays_close(
-        alpha_lower, np.asarray(ref["alpha_lower"]), atol=CI_ATOL, rtol=CI_RTOL
+        alpha_lower, np.asarray(ref["alpha_point"]), atol=CI_ATOL, rtol=CI_RTOL
     )
     _assert_arrays_close(
         alpha_upper, np.asarray(ref["alpha_upper"]), atol=CI_ATOL, rtol=CI_RTOL
