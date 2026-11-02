@@ -16,6 +16,7 @@ from scipy.stats import gmean, hmean
 
 from ..core.config import get_settings
 from ..core.constants import COMPARTMENTS, FORECASTING_LEVELS
+from ..data.features import LOG_ALPHA
 
 
 def _warn_if_flat_median_incidence_forecast(
@@ -89,6 +90,8 @@ class EpidemicSimulation:
         self.forecasting_box = forecasting_box
         self.forecasting_interval = forecasting_interval
         self.importation_rate = importation_rate
+        # Period-cohort incidence data (see dynasir.data.features.uses_cohort_semantics)
+        self.cohort = LOG_ALPHA in getattr(data, "columns", [])
 
         # Detect if we have vaccination (delta rate present)
         self.has_vaccination = "delta" in forecasting_box
@@ -117,7 +120,9 @@ class EpidemicSimulation:
         Returns:
             DataFrame with simulated compartment values
         """
-        # Get initial state from the last historical data point
+        # Initial state: the last historical period. Its rates are not used:
+        # the rate of the step from the last period to the first forecast
+        # period is the first forecast value.
         last_hist = self.data.iloc[-1]
 
         # Current state variables
@@ -134,15 +139,6 @@ class EpidemicSimulation:
             V = last_hist.V if "V" in last_hist.index else 0
         else:
             V = 0
-
-        # Current rates (from history) used for the first step calculation
-        alpha = last_hist.alpha
-        beta = last_hist.beta
-        gamma = last_hist.gamma
-        if self.has_vaccination:
-            delta = last_hist.delta if "delta" in last_hist.index else 0
-        else:
-            delta = 0
 
         # Get forecasted rates as numpy arrays for performance
         forecast_alphas = (
@@ -178,41 +174,38 @@ class EpidemicSimulation:
         results = np.zeros((n_steps, n_cols))
 
         for i in range(n_steps):
-            # Dynamics using CURRENT (previous step's) state and rates
-            # Calculate flows
+            # Rates of the step that ends at forecasting_interval[i]
+            alpha = forecast_alphas[i]
+            beta = forecast_betas[i]
+            gamma = forecast_gammas[i]
+            delta = forecast_deltas[i] if self.has_vaccination else 0.0
+
             # Force of Infection = alpha * I / A + epsilon (importation)
             # New Infections = FoI * S
             force_of_infection = (alpha * I / A) + self.importation_rate
             infection = force_of_infection * S
+            vaccination = delta * S if self.has_vaccination else 0.0
 
-            recovery = beta * I
-            death = gamma * I
-
-            if self.has_vaccination:
-                # Vaccination flow: delta * S
-                vaccination = delta * S
-                # Update S with both infection and vaccination
-                new_S = S - infection - vaccination
-                new_V = V + vaccination
+            if self.cohort:
+                # I is the cases of the period: the whole current cohort leaves
+                # I, and the new infections form the next period's cohort.
+                infection = min(infection, S - vaccination)
+                death = gamma * infection
+                new_I = infection
+                new_R = R + I - death
             else:
-                # SIRD: S only reduced by infection
-                new_S = S - infection
-                new_V = 0
+                recovery = beta * I
+                death = gamma * I
+                # I(t) = I(t-1) + infection - recovery - death
+                new_I = I + infection - recovery - death
+                new_R = R + recovery
 
-            # I(t) = I(t-1) + infection - recovery - death
-            new_I = I + infection - recovery - death
-            new_R = R + recovery
+            new_S = S - infection - vaccination
+            new_V = V + vaccination if self.has_vaccination else 0
             new_D = D + death
 
             new_C = new_I + new_R + new_D
             new_A = new_S + new_I
-
-            # Get the rates for THIS forecasted step (to be used in NEXT iteration)
-            new_alpha = forecast_alphas[i]
-            new_beta = forecast_betas[i]
-            new_gamma = forecast_gammas[i]
-            if self.has_vaccination:
-                new_delta = forecast_deltas[i]
 
             # Store results
             results[i, 0] = new_A
@@ -223,21 +216,19 @@ class EpidemicSimulation:
             results[i, 5] = new_D
             if self.has_vaccination:
                 results[i, 6] = new_V
-                results[i, 7] = new_alpha
-                results[i, 8] = new_beta
-                results[i, 9] = new_gamma
-                results[i, 10] = new_delta
+                results[i, 7] = alpha
+                results[i, 8] = beta
+                results[i, 9] = gamma
+                results[i, 10] = delta
             else:
-                results[i, 6] = new_alpha
-                results[i, 7] = new_beta
-                results[i, 8] = new_gamma
+                results[i, 6] = alpha
+                results[i, 7] = beta
+                results[i, 8] = gamma
 
             # Update state for next iteration
             S, I, R, D, A, C = new_S, new_I, new_R, new_D, new_A, new_C
-            alpha, beta, gamma = new_alpha, new_beta, new_gamma
             if self.has_vaccination:
                 V = new_V
-                delta = new_delta
 
         # Create DataFrame from results
         if self.has_vaccination:

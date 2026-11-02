@@ -15,20 +15,71 @@ from dynasir.core.config import get_settings
 # Import constants from the core module
 from ..core.constants import LOGIT_RATIOS, RATIOS
 
+# Log-transformed infection rate used in cohort mode (alpha can exceed 1)
+LOG_ALPHA = "log_alpha"
 
-def prepare_for_logit_function(data: pd.DataFrame) -> pd.DataFrame:
+
+def uses_cohort_semantics(mode: str, recovery_lag: float) -> bool:
+    """
+    Return True when incidence data is modelled as period cohorts.
+
+    In incidence mode with a recovery lag of at most one period (annual data,
+    14/365, and monthly data, 14/30), the cases of period t are the infectious
+    cohort for the step from t to t+1, and that cohort is removed by t+1.
+    The infection rate is then new cases in t+1 per case in t (scaled by the
+    susceptible share), which can exceed 1, so it is modelled on the log scale.
+
+    Args:
+        mode: 'cumulative' or 'incidence'
+        recovery_lag: Recovery lag in periods
+
+    Returns:
+        True for incidence data with recovery_lag <= 1
+    """
+    return mode == "incidence" and recovery_lag is not None and recovery_lag <= 1
+
+
+def get_forecast_columns(columns) -> list:
+    """
+    Return the transformed rate columns that a forecaster should model.
+
+    Cohort-mode data (with a ``log_alpha`` column) forecasts ``log_alpha``,
+    ``logit_gamma`` and, for SIRDV, ``logit_delta``; beta is derived as
+    1 - gamma. Other data forecasts the logit of every rate present.
+
+    Args:
+        columns: Column names of a feature-engineered DataFrame
+
+    Returns:
+        List of column names in forecasting order
+    """
+    columns = list(columns)
+    if LOG_ALPHA in columns:
+        names = [LOG_ALPHA, "logit_gamma", "logit_delta"]
+    else:
+        names = list(LOGIT_RATIOS)
+    return [name for name in names if name in columns]
+
+
+def prepare_for_logit_function(
+    data: pd.DataFrame, cohort: bool = False
+) -> pd.DataFrame:
     """
     Prepare rate data for logit transformation by ensuring values are in (0,1).
 
     Args:
         data: DataFrame containing rate columns
+        cohort: If True, alpha is only bounded below, because it is
+            log-transformed and can exceed 1 (see uses_cohort_semantics)
 
     Returns:
-        DataFrame with rates bounded between 0 and 1
+        DataFrame with rates bounded between 0 and 1 (alpha bounded below
+        only in cohort mode)
     """
     data = data.copy()
 
     # Ensure rates are within (0,1) bounds for logit transformation
+    epsilon = 1e-10
     for ratio in RATIOS:
         if ratio in data.columns:
             # Replace NaN and infinite values
@@ -36,9 +87,11 @@ def prepare_for_logit_function(data: pd.DataFrame) -> pd.DataFrame:
                 [float("inf"), -float("inf")], float("nan")
             )
 
-            # Bound values between small epsilon and (1-epsilon)
-            epsilon = 1e-10
-            data[ratio] = data[ratio].clip(lower=epsilon, upper=1 - epsilon)
+            if cohort and ratio == "alpha":
+                data[ratio] = data[ratio].clip(lower=epsilon)
+            else:
+                # Bound values between small epsilon and (1-epsilon)
+                data[ratio] = data[ratio].clip(lower=epsilon, upper=1 - epsilon)
 
     return data
 
@@ -73,21 +126,30 @@ def logistic_function(x: Union[float, pd.Series]) -> Union[float, pd.Series]:
     return 1 / (1 + np.exp(-x))
 
 
-def add_logit_ratios(data: pd.DataFrame) -> pd.DataFrame:
+def add_logit_ratios(data: pd.DataFrame, cohort: bool = False) -> pd.DataFrame:
     """
     Add logit-transformed ratio columns to the DataFrame.
 
     Args:
         data: DataFrame containing rate columns
+        cohort: If True, add ``log_alpha`` instead of ``logit_alpha`` and no
+            ``logit_beta`` (beta is derived as 1 - gamma)
 
     Returns:
         DataFrame with additional logit rate columns
     """
+    import numpy as np
+
     data = data.copy()
+
+    if cohort and "alpha" in data.columns:
+        data[LOG_ALPHA] = np.log(data["alpha"])
 
     # Add logit transformations for each ratio
     ratio_pairs = list(zip(RATIOS, LOGIT_RATIOS))
     for ratio, logit_ratio in ratio_pairs:
+        if cohort and ratio in ("alpha", "beta"):
+            continue
         if ratio in data.columns:
             try:
                 data[logit_ratio] = logit_function(data[ratio])
@@ -154,6 +216,13 @@ def feature_engineering(
         recovery_lag = settings.RECOVERY_LAG
         logging.debug(f"Using default recovery lag: {recovery_lag}")
 
+    cohort = uses_cohort_semantics(mode, recovery_lag)
+    if cohort:
+        logging.debug(
+            f"Incidence data with recovery lag {recovery_lag} <= 1 period: "
+            "using period-cohort rates"
+        )
+
     if mode == "cumulative":
         # CUMULATIVE MODE: C is cumulative cases (always increasing)
         # Calculate compartments from C
@@ -164,13 +233,13 @@ def feature_engineering(
         # INCIDENCE MODE: I is incident cases (can vary)
         # Calculate compartments from I
         engineered_data = _calculate_compartments_incidence(
-            engineered_data, has_vaccination, settings, recovery_lag
+            engineered_data, has_vaccination, settings, recovery_lag, cohort=cohort
         )
     else:
         raise ValueError(f"Invalid mode: {mode}. Must be 'cumulative' or 'incidence'")
 
     # Calculate epidemiological rates (same for both modes)
-    engineered_data = _calculate_rates(engineered_data, has_vaccination)
+    engineered_data = _calculate_rates(engineered_data, has_vaccination, cohort=cohort)
 
     # R0: Basic reproduction number
     engineered_data = engineered_data.assign(
@@ -181,8 +250,8 @@ def feature_engineering(
     logging.debug(f"When completing assignments, columns are {engineered_data.columns}")
 
     # Prepare rates for logit transformation and apply it
-    engineered_data = prepare_for_logit_function(engineered_data)
-    engineered_data = add_logit_ratios(engineered_data)
+    engineered_data = prepare_for_logit_function(engineered_data, cohort=cohort)
+    engineered_data = add_logit_ratios(engineered_data, cohort=cohort)
 
     # Final cleanup: forward fill then zero fill any remaining NaN values
     engineered_data = engineered_data.ffill().fillna(0)
@@ -260,7 +329,11 @@ def _calculate_compartments_cumulative(
 
 
 def _calculate_compartments_incidence(
-    data: pd.DataFrame, has_vaccination: bool, settings, recovery_lag: float = None
+    data: pd.DataFrame,
+    has_vaccination: bool,
+    settings,
+    recovery_lag: float = None,
+    cohort: bool = False,
 ) -> pd.DataFrame:
     """
     Calculate SIRD compartments from incident cases I.
@@ -270,6 +343,8 @@ def _calculate_compartments_incidence(
         has_vaccination: Whether V (vaccination) column is present
         settings: Config settings object
         recovery_lag: Recovery lag in periods (can be fractional)
+        cohort: If True, every earlier cohort has been removed by period t,
+            so R = C - I - D (see uses_cohort_semantics)
     """
     import numpy as np
 
@@ -284,7 +359,10 @@ def _calculate_compartments_incidence(
 
     # R: Recovered (cumulative incident minus deaths, lagged)
     # Support fractional lags via interpolation
-    if lag == int(lag):
+    if cohort:
+        # All cohorts before t have been removed: R_t = C_(t-1) - D_t
+        recovered_cumulative = data["C"] - data["I"]
+    elif lag == int(lag):
         # Integer lag - use standard shift
         recovered_cumulative = data["I"].shift(int(lag)).fillna(0).cumsum()
     else:
@@ -314,9 +392,9 @@ def _calculate_compartments_incidence(
     # For annual data, I represents average active during period
     data = data.assign(A=data["S"] + data["I"])
 
-    # Calculate differences
-    # dC is just I (incident cases)
-    data = data.assign(dC=data["I"])
+    # Calculate forward differences: dX_t = X_(t+1) - X_t
+    # dC_t = I_(t+1), the new cases of the next period
+    data = data.assign(dC=-data["C"].diff(periods=-1))
     data = data.assign(dA=-data["A"].diff(periods=-1))
     data = data.assign(dS=-data["S"].diff(periods=-1))
     data = data.assign(dI=-data["I"].diff(periods=-1))
@@ -331,16 +409,30 @@ def _calculate_compartments_incidence(
     return data
 
 
-def _calculate_rates(data: pd.DataFrame, has_vaccination: bool) -> pd.DataFrame:
-    """Calculate epidemiological rates (alpha, beta, gamma, delta)."""
+def _calculate_rates(
+    data: pd.DataFrame, has_vaccination: bool, cohort: bool = False
+) -> pd.DataFrame:
+    """
+    Calculate epidemiological rates (alpha, beta, gamma, delta).
+
+    The rate in row t describes the step from t to t+1, so the last row has
+    no rate. In cohort mode (see uses_cohort_semantics) gamma is the share of
+    the next cohort that dies, and beta = 1 - gamma: the whole cohort of
+    period t leaves I by t+1.
+    """
     # Alpha: infection rate
     data = data.assign(alpha=(data.A * data.dC) / (data.I * data.S))
 
-    # Beta: recovery rate
-    data = data.assign(beta=data.dR / data.I)
+    if cohort:
+        # Gamma: deaths in t+1 per new case in t+1; beta: the rest of the cohort
+        data = data.assign(gamma=data.dD / data.dC)
+        data = data.assign(beta=1 - data.gamma)
+    else:
+        # Beta: recovery rate
+        data = data.assign(beta=data.dR / data.I)
 
-    # Gamma: mortality rate
-    data = data.assign(gamma=data.dD / data.I)
+        # Gamma: mortality rate
+        data = data.assign(gamma=data.dD / data.I)
 
     # Delta: vaccination rate (SIRDV only)
     if has_vaccination:

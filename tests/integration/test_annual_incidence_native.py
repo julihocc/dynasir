@@ -64,10 +64,12 @@ class TestAnnualIncidenceNativeSupport:
 
     def test_fractional_recovery_lag_implementation(self, measles_annual_data):
         """
-        Test that fractional recovery lag is correctly implemented.
+        Test the period-cohort rates used for annual incidence data.
 
-        This is the core fix: annual frequency should use fractional lag
-        (14/365 = 0.0384 years) instead of integer lag (0 or 1 years).
+        The annual recovery lag (14/365 years) is below one period, so each
+        year's cases are the cohort for the step to the next year and are all
+        removed by then: beta = 1 - gamma, with gamma the next cohort's
+        case-fatality share.
         """
         container = DataContainer(
             measles_annual_data, mode="incidence", frequency="YE", window=1
@@ -75,21 +77,12 @@ class TestAnnualIncidenceNativeSupport:
 
         # Verify frequency handler uses fractional lag
         assert container.frequency == "YE"
+        assert container.handler.get_recovery_lag() < 1
 
-        # Check that beta varies (not constant at 1.0)
-        beta_values = container.data["beta"].dropna()
-        assert len(beta_values) > 0
-
-        # Beta should vary (critical: not all 1.0)
-        unique_beta = beta_values.unique()
-        assert len(unique_beta) > 1, "Beta should vary, not be constant"
-
-        # Beta should range from ~0.038 to 1.0
-        assert beta_values.min() > 0.01, "Beta minimum should be > 0 (fractional lag)"
-        assert (
-            beta_values.min() < 0.5
-        ), "Beta minimum should be < 0.5 (showing variation)"
-        assert beta_values.max() <= 1.0, "Beta maximum should be <= 1.0"
+        data = container.data
+        np.testing.assert_allclose(data["beta"], 1 - data["gamma"], atol=1e-9)
+        assert (data["beta"] > 0).all() and (data["beta"] <= 1).all()
+        assert (data["gamma"] >= 0).all() and (data["gamma"] < 1).all()
 
     def test_var_model_fits_with_annual_incidence(self, measles_annual_data):
         """
@@ -110,9 +103,9 @@ class TestAnnualIncidenceNativeSupport:
         model.create_model()
         model.fit_model(max_lag=3)
 
-        # Verify model fitted
+        # Verify model fitted (the selected lag order may be 0)
         assert model.var_forecasting.logit_ratios_model_fitted is not None
-        assert model.var_forecasting.logit_ratios_model_fitted.k_ar > 0
+        assert model.var_forecasting.logit_ratios_model_fitted.k_ar >= 0
 
     def test_complete_annual_incidence_workflow(self, measles_annual_data):
         """
@@ -163,29 +156,30 @@ class TestAnnualIncidenceNativeSupport:
         assert "mean" in model.results.C.columns
         assert "median" in model.results.C.columns
 
-    def test_constant_column_detection(self, measles_annual_data):
+    def test_infection_rate_varies(self, measles_annual_data):
         """
-        Test that constant alpha column is detected and handled.
+        Test that alpha is estimated from the data (#162).
 
-        Annual + incidence mode causes alpha = 1.0 (constant) due to
-        fractional recovery lag. The VAR leaves it out and holds it fixed.
+        alpha_t = A_t * I_(t+1) / (I_t * S_t): new cases next year per case
+        this year, scaled by the susceptible share. It can exceed 1 and is
+        forecast on the log scale.
         """
         container = DataContainer(
             measles_annual_data, mode="incidence", frequency="YE", window=1
         )
 
-        # Check alpha is constant
-        alpha_values = container.data["alpha"].dropna()
-        assert len(alpha_values) > 0
-        # Alpha should be constant (all ~1.0)
-        assert np.allclose(alpha_values, 1.0, atol=1e-6)
+        data = container.data
+        # Rows where both years have cases (the last row has no next year)
+        both = (data["I"] > 0) & (data["I"].shift(-1) > 0)
+        both.iloc[-1] = False
+        expected = data["A"] * data["I"].shift(-1) / (data["I"] * data["S"])
+        np.testing.assert_allclose(data["alpha"][both], expected[both])
+        assert data["alpha"].std() > 0
+        assert (data["alpha"] > 1).any()
+        np.testing.assert_allclose(data["log_alpha"], np.log(data["alpha"]))
 
-        # Model should detect and handle this
         model = Model(container)
         model.create_model()
-
-        # Should log a warning about constant columns and hold them fixed
-        # (We can't easily check logs, but we can verify it doesn't crash)
         model.fit_model(max_lag=3)
 
         assert model.var_forecasting.logit_ratios_model_fitted is not None
@@ -266,15 +260,11 @@ class TestFractionalLagInterpolation:
 
         container = DataContainer(data, mode="incidence", frequency="YE", window=1)
 
-        # With fractional lag, R should be interpolated between shifts
-        R_values = container.data["R"].dropna()
-
-        # R should not equal I (would happen with lag=0)
-        I_values = container.data["I"].dropna()
-        # Allow for some equality due to cumsum, but not all
-        assert not np.allclose(
-            R_values.values[: len(I_values)], np.cumsum(I_values.values)
-        ), "R should differ from cumsum(I) due to fractional lag interpolation"
+        # Each year's cohort is removed by the next year: R_t = C_(t-1) - D_t
+        data = container.data
+        expected = (data["C"] - data["I"] - data["D"]).clip(lower=0)
+        np.testing.assert_allclose(data["R"], expected)
+        np.testing.assert_allclose(data["C"], data["I"] + data["R"] + data["D"])
 
 
 class TestBackwardCompatibilityV090:

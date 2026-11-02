@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Incidence data with a recovery lag of at most one period (annual and monthly) is modelled as period cohorts** (#162, #163, #166). The cases of period t are the infectious group for the step to t+1, and all of them leave I by then. This is a behaviour change for annual and monthly incidence models:
+  - `alpha_t = A_t * I_(t+1) / (I_t * S_t)`: new cases next period per case, scaled by the susceptible share. It was `1 + I/S` and clipped to a constant. It can exceed 1, so it is forecast as `log_alpha` (no `logit_alpha` column).
+  - `gamma_t` is the share of the next cohort that dies (`dD/dC`), and `beta = 1 - gamma` is derived, not forecast (no `logit_beta` column). Its levels mirror gamma's.
+  - `R = C - I - D`, and `calculate_R0()` equals alpha, which is close to the growth ratio `I_(t+1)/I_t`: R0 > 1 now precedes rises. With annual counts this is a ratio between successive years, not a per-generation reproduction number.
+  - The simulation reports period incidence in `results["I"]`, comparable with the input `I`. Beta does not enter the cohort simulation, so the beta level in a scenario name does not change its result, and `forecast_R0()` returns alpha for every scenario.
+  - In incidence mode at every frequency, `dC` is now a forward difference (`I_(t+1)`), as in cumulative mode. Lags above one period (daily and weekly incidence) keep the earlier approximation (#178).
+- The rate in row t describes the step from t to t+1. `Model` therefore fits the rates of every training date except the last (whose step leaves the training window), forecast rate i drives forecast step i, and `calculate_R0()` excludes the last training date. A forecast rate labelled with date d is the rate of the step ending at d.
+
 - `run_simulations()` now runs sequentially by default (`PARALLEL_SIMULATIONS` defaults to `False`). Each scenario takes milliseconds, and starting worker processes made the default call about 200 times slower on Windows (about 5 s instead of 0.02 s for 27 SIRD scenarios). Set `PARALLEL_SIMULATIONS=true` or pass `n_jobs>1` to use a process pool (#160).
 
 ### Fixed
@@ -18,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `evaluate_forecast` works with read-only arrays (#173).
 - The VAR backend no longer swaps the `lower` and `point` forecast levels. statsmodels returns `(point, lower, upper)`, which was read as `(lower, point, upper)`, so every "point" scenario was driven by the lower bound. The legacy `dynasir.epydemics.Model` read the same tuple as one rate per element and now builds each rate's levels correctly (#175).
 - Constant rate columns (for example gamma when all deaths are zero) no longer make VAR fitting fail with a bare `LinAlgError`. They are left out of the model, held at their constant value at every forecast level, and named in a warning that suggests the likely input cause. With one varying column the backend fits a univariate AutoReg model, and with none it repeats the constants. The `trend='n'` workaround is removed, and VAR(0) fits can now be forecast (#168).
+- `Model(stop=...)` no longer uses data after `stop`. Rates use forward differences, so the last training rate came from the first forecast period; the model now rebuilds the features from the raw data up to `stop` (`DataContainer.up_to`) (#164).
+- The first forecast step uses the first forecast rate. It used the last historical rate, so all scenarios coincided at step 1, and the last forecast rate was never used (#165).
+- The result cache key includes `mode` and `importation_rate`.
 - The `FORECASTER_ALPHA` setting is now the default interval level for `Model.forecast()`; an explicit `alpha=` still takes precedence (#170).
 
 ### Documentation

@@ -344,13 +344,29 @@ class ForecastingOrchestrator:
                 index=self.forecasting_interval,
             )
 
-        # Apply inverse logit (logistic function) to transform back to rate space
-        # This gives us the original rates (alpha, beta, gamma, [delta])
-        for logit_ratio in self.active_logit_ratios:
-            # Remove "logit_" prefix to get rate name
-            rate_name = logit_ratio.replace("logit_", "")
-            self.forecasting_box[rate_name] = self.forecasting_box[logit_ratio].apply(
-                logistic_function
+        # Invert the transforms to get the rates (alpha, beta, gamma, [delta]):
+        # logistic for "logit_" columns, exp for "log_" columns
+        for column in self.active_logit_ratios:
+            if column.startswith("log_"):
+                rate_name = column[len("log_") :]
+                self.forecasting_box[rate_name] = np.exp(self.forecasting_box[column])
+            else:
+                rate_name = column.replace("logit_", "")
+                self.forecasting_box[rate_name] = self.forecasting_box[column].apply(
+                    logistic_function
+                )
+
+        # Period-cohort incidence data forecasts gamma only; the rest of the
+        # cohort recovers, so beta = 1 - gamma (levels mirrored)
+        if "beta" not in self.forecasting_box and "gamma" in self.forecasting_box:
+            gamma = self.forecasting_box["gamma"]
+            self.forecasting_box["beta"] = pd.DataFrame(
+                {
+                    "lower": 1 - gamma["upper"],
+                    "point": 1 - gamma["point"],
+                    "upper": 1 - gamma["lower"],
+                },
+                index=gamma.index,
             )
 
     def __repr__(self) -> str:

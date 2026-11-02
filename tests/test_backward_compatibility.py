@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from dynasir.models.forecasting.orchestrator import ForecastingOrchestrator
 from dynasir.models.sird import Model
 
 # Tolerances for backward compatibility tests – adjust if needed after fixture generation
@@ -81,20 +82,36 @@ def test_forecast_equivalence_covid_reference_only() -> None:
     reason="v0.7.0 COVID fixture missing",
 )
 def test_forecast_equivalence_covid_current_vs_reference(sample_data_container) -> None:
-    """Compare current VAR forecast to v0.7.0 reference on the same data."""
+    """Compare the VAR forecast to the v0.7.0 reference on the same training rows.
+
+    Since #164/#165 the model leaves out the last training row, whose rate
+    describes the step after the training window. v0.7.0 fitted on every row,
+    so the comparison rebuilds the forecaster on those rows to check that the
+    forecasting itself is unchanged.
+    """
     ref = _load_pickle(FIXTURE_DIR / "covid_cumulative_forecast.pkl")
 
     steps = int(np.asarray(ref["alpha_point"]).shape[0])
 
-    # Run current model with defaults (VAR backend)
     model = Model(sample_data_container)
-    model.create_model()
-    model.fit_model(max_lag=3)
-    model.forecast(steps=steps)
+    columns = model.active_logit_ratios
+    v070 = ForecastingOrchestrator(
+        model.data,
+        model.data[columns].values,
+        model.window,
+        active_logit_ratios=columns,
+        backend="var",
+        frequency=model.data.index.freqstr,
+    )
+    # Model.fit_model caps max_lag at (n_obs - 20) // 6, with n_obs = all rows
+    max_lag = min(3, max(1, (len(model.data) - 20) // 6))
+    v070.create_logit_ratios_model()
+    v070.fit_logit_ratios_model(max_lag=max_lag, ic="aic")
+    v070.forecast_logit_ratios(steps=steps)
 
-    alpha_point = np.asarray(model.forecasting_box["alpha"]["point"])
-    alpha_lower = np.asarray(model.forecasting_box["alpha"]["lower"])
-    alpha_upper = np.asarray(model.forecasting_box["alpha"]["upper"])
+    alpha_point = np.asarray(v070.forecasting_box["alpha"]["point"])
+    alpha_lower = np.asarray(v070.forecasting_box["alpha"]["lower"])
+    alpha_upper = np.asarray(v070.forecasting_box["alpha"]["upper"])
 
     # The v0.7.0 reference was produced while the VAR backend swapped the
     # statsmodels (point, lower, upper) tuple (#175): its "alpha_lower" holds
