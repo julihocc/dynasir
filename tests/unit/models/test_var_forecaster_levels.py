@@ -122,6 +122,20 @@ class TestConstantColumns:
         assert np.all(lower[:, 1] < point[:, 1])
         assert np.all(point[:, 1] < upper[:, 1])
 
+    def test_single_varying_column_with_zero_lags(self):
+        rng = np.random.default_rng(5)
+        y = rng.normal(0, 1, 30)
+        data = np.column_stack([np.full(30, 1.0), y, np.full(30, 2.0)])
+        forecaster = VARForecaster(data)
+        forecaster.create_model()
+        forecaster.fit(0)
+        lower, point, upper = forecaster.forecast_interval(3)
+
+        assert forecaster.k_ar == 0
+        np.testing.assert_allclose(point[:, 1], y.mean())
+        assert np.all(lower[:, 1] < point[:, 1])
+        assert np.all(point[:, 1] < upper[:, 1])
+
     def test_all_constant_columns_repeat_constants(self):
         data = np.tile([0.5, -2.0, 3.0], (20, 1))
         forecaster = VARForecaster(data)
