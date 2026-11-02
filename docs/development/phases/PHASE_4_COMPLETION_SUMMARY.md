@@ -25,19 +25,19 @@ Phase 4 successfully implements frequency-aware VAR model parameter defaults, en
 
 ### 2. Intelligent Data Handling
 
-#### Frequency Detection (`src/epydemics/data/frequency_detection.py`)
+#### Frequency Detection (`src/dynasir/data/frequency_detection.py`)
 - Detects frequency from DatetimeIndex spacing
 - Calculates median period and validates consistency
 - Gracefully handles irregular spacing
 - Supports pandas frequency aliases and modern codes (ME, YE vs M, Y)
 
-#### Frequency Handler Registry (`src/epydemics/data/frequency_handlers.py`)
+#### Frequency Handler Registry (`src/dynasir/data/frequency_handlers.py`)
 - Implements `FrequencyHandler` abstract base class
 - Provides validators for minimum observations per frequency
 - Supplies frequency-specific parameters to all components
 - Case-insensitive handler lookup
 
-#### Reindexing Logic (`src/epydemics/data/utilities.py`)
+#### Reindexing Logic (`src/dynasir/data/utilities.py`)
 - **Frequency-Aware Reindexing**: 
   - For non-daily data (ME, YE): Skips reindexing to preserve native frequency
   - For daily/weekly: Standard date range expansion
@@ -47,19 +47,19 @@ Phase 4 successfully implements frequency-aware VAR model parameter defaults, en
 
 ### 3. Model Integration
 
-#### DataContainer Updates (`src/epydemics/data/container.py`)
+#### DataContainer Updates (`src/dynasir/data/container.py`)
 ```python
 self.frequency = frequency  # Stored frequency (YE, ME, W, D)
 self.handler = get_frequency_handler(frequency)  # Handler instance
 self.recovery_lag = self.handler.get_recovery_lag()  # Frequency-aware
 ```
 
-#### Model Initialization (`src/epydemics/models/sird.py`)
+#### Model Initialization (`src/dynasir/models/sird.py`)
 - Passes frequency parameter to reindex_data()
 - Skips reindexing for non-daily data
 - Preserves data integrity for aggregated frequencies
 
-#### VAR Fitting (`src/epydemics/models/sird.py` - fit_model())
+#### VAR Fitting (`src/dynasir/models/sird.py` - fit_model())
 - Uses frequency handler's default max_lag
 - Automatically reduces max_lag if data is insufficient
   - Conservative formula: `(n_observations - 10) / 5`
@@ -129,23 +129,23 @@ Forecasting & Simulation
 
 ## Files Modified
 
-1. **src/epydemics/data/frequency_detection.py** (NEW)
+1. **src/dynasir/data/frequency_detection.py** (NEW)
    - Frequency detection algorithm
 
-2. **src/epydemics/data/frequency_handlers.py** (NEW)
+2. **src/dynasir/data/frequency_handlers.py** (NEW)
    - FrequencyHandler base class
    - Daily/Weekly/Monthly/Annual handlers
    - Handler registry
 
-3. **src/epydemics/data/utilities.py**
+3. **src/dynasir/data/utilities.py**
    - Updated `reindex_data()` for frequency-awareness
    - Skip reindexing for non-daily frequencies
 
-4. **src/epydemics/data/container.py**
+4. **src/dynasir/data/container.py**
    - Added frequency and handler initialization
    - Uses frequency-aware reindexing
 
-5. **src/epydemics/models/sird.py**
+5. **src/dynasir/models/sird.py**
    - Model.__init__() passes frequency to reindex_data()
    - fit_model() uses frequency-specific max_lag defaults
    - Auto-adjustment of max_lag based on data size
@@ -155,7 +155,7 @@ Forecasting & Simulation
 ### Annual Measles Data
 ```python
 import pandas as pd
-from epydemics import DataContainer, Model
+from dynasir import DataContainer, Model
 
 # Annual data (10 years)
 annual_data = pd.DataFrame({

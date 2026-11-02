@@ -1,6 +1,6 @@
-# Epydemics Examples
+# DynaSIR Examples
 
-This directory contains example notebooks and scripts demonstrating the capabilities of the epydemics library for epidemiological modeling and forecasting.
+This directory contains example notebooks and scripts demonstrating the capabilities of the dynasir library for epidemiological modeling and forecasting.
 
 **Version**: 0.9.0-dev (includes incidence mode support & multi-frequency support)
 
@@ -181,11 +181,11 @@ Complete guide to working with annual surveillance data using Phase 1 workaround
 
 ### Prerequisites
 ```bash
-# Install epydemics with development dependencies
+# Install dynasir with development dependencies
 pip install -e ".[dev]"
 
 # Or install from PyPI
-pip install epydemics
+pip install dynasir
 
 # Install jupyter for running notebooks
 pip install jupyter
@@ -223,7 +223,7 @@ If you encounter network connectivity errors when running the notebooks:
 
 3. **Check the data README**: See `data/README.md` for detailed troubleshooting steps
 
-The epydemics package will automatically use local data if available when network downloads fail.
+The dynasir package will automatically use local data if available when network downloads fail.
 
 ## Planned Examples
 
@@ -236,7 +236,7 @@ Future notebooks to be added:
 
 ## Contributing Examples
 
-If you've created an interesting analysis using epydemics, consider contributing it as an example:
+If you've created an interesting analysis using dynasir, consider contributing it as an example:
 
 1. Ensure your notebook runs from start to finish without errors
 2. Add markdown cells explaining the methodology
@@ -247,19 +247,19 @@ If you've created an interesting analysis using epydemics, consider contributing
 ## Support
 
 For questions or issues:
-- GitHub Issues: https://github.com/julihocc/epydemics/issues
-- Documentation: https://github.com/julihocc/epydemics#readme
-- PyPI: https://pypi.org/project/epydemics/
+- GitHub Issues: https://github.com/julihocc/dynasir/issues
+- Documentation: https://github.com/julihocc/dynasir#readme
+- PyPI: https://pypi.org/project/dynasir/
 
 ## Citation
 
 If you use these examples in your research, please cite:
 
 ```bibtex
-@software{epydemics2024,
+@software{dynasir2026,
   author = {Castillo Colmenares, Juliho David},
-  title = {Epydemics: Adaptive Epidemic Forecasting Using Time Series Analysis},
-  year = {2024},
-  url = {https://github.com/julihocc/epydemics}
+  title = {DynaSIR: Adaptive Epidemic Forecasting Using Time Series Analysis},
+  year = {2026},
+  url = {https://github.com/julihocc/dynasir}
 }
 ```

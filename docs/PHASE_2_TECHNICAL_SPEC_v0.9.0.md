@@ -66,7 +66,7 @@ Year  | I (incident)   | Notes
 
 **DataContainer**:
 ```python
-from epydemics import DataContainer
+from dynasir import DataContainer
 
 # v0.8.0 (default cumulative mode)
 container = DataContainer(data, mode='cumulative')  # Default
@@ -174,14 +174,14 @@ def validate_incidence_data(data):
 ### Implementation Plan
 
 **Files to Modify**:
-1. `src/epydemics/data/container.py`: Add `mode` parameter
-2. `src/epydemics/data/features.py`: Dual-mode feature engineering
-3. `src/epydemics/data/validation.py`: Add `validate_incidence_data()`
-4. `src/epydemics/models/sird.py`: Pass mode to forecasting/simulation
-5. `src/epydemics/models/simulation.py`: Handle incidence-based simulation
+1. `src/dynasir/data/container.py`: Add `mode` parameter
+2. `src/dynasir/data/features.py`: Dual-mode feature engineering
+3. `src/dynasir/data/validation.py`: Add `validate_incidence_data()`
+4. `src/dynasir/models/sird.py`: Pass mode to forecasting/simulation
+5. `src/dynasir/models/simulation.py`: Handle incidence-based simulation
 
 **New Files**:
-- `src/epydemics/models/incidence.py`: Incidence-specific utilities (optional)
+- `src/dynasir/models/incidence.py`: Incidence-specific utilities (optional)
 
 **Tests**:
 - `tests/unit/data/test_incidence_mode.py`: Feature engineering tests
@@ -343,15 +343,15 @@ model.forecast(steps=10)  # 10 years, not 10 days
 ### Implementation Plan
 
 **Files to Modify**:
-1. `src/epydemics/data/container.py`: Add `frequency` parameter
-2. `src/epydemics/data/preprocessing.py`: Conditional reindexing
-3. `src/epydemics/data/features.py`: Frequency-aware rate calculation
-4. `src/epydemics/models/sird.py`: Accept frequency from container
-5. `src/epydemics/models/forecasting/var.py`: Frequency-aware lag selection
+1. `src/dynasir/data/container.py`: Add `frequency` parameter
+2. `src/dynasir/data/preprocessing.py`: Conditional reindexing
+3. `src/dynasir/data/features.py`: Frequency-aware rate calculation
+4. `src/dynasir/models/sird.py`: Accept frequency from container
+5. `src/dynasir/models/forecasting/var.py`: Frequency-aware lag selection
 
 **New Files**:
-- `src/epydemics/data/frequency_handlers.py`: FrequencyHandler classes
-- `src/epydemics/core/constants.py`: Update RECOVERY_LAG_BY_FREQUENCY
+- `src/dynasir/data/frequency_handlers.py`: FrequencyHandler classes
+- `src/dynasir/core/constants.py`: Update RECOVERY_LAG_BY_FREQUENCY
 
 **Tests**:
 - `tests/unit/data/test_frequency_handlers.py`: Each handler class
@@ -388,7 +388,7 @@ Need: Model both importation and local transmission
 
 **Model Initialization**:
 ```python
-from epydemics import Model
+from dynasir import Model
 
 # v0.8.0 - no importation
 model = Model(container, start='1980', stop='2015')
@@ -492,12 +492,12 @@ R_effective = R0 + (importation_rate / I_baseline)
 ### Implementation Plan
 
 **Files to Modify**:
-1. `src/epydemics/models/sird.py`: Add `importation_rate` parameter
-2. `src/epydemics/models/simulation.py`: Modify `_calculate_next_step()`
-3. `src/epydemics/analysis/evaluation.py`: Interpret R0 with importation
+1. `src/dynasir/models/sird.py`: Add `importation_rate` parameter
+2. `src/dynasir/models/simulation.py`: Modify `_calculate_next_step()`
+3. `src/dynasir/analysis/evaluation.py`: Interpret R0 with importation
 
 **New Files**:
-- `src/epydemics/models/importation.py`: Importation modeling utilities
+- `src/dynasir/models/importation.py`: Importation modeling utilities
 
 **Tests**:
 - `tests/unit/models/test_importation.py`: Simulation dynamics with imports
@@ -521,7 +521,7 @@ R_effective = R0 + (importation_rate / I_baseline)
 
 ```python
 # v0.8.0 code works unchanged in v0.9.0
-from epydemics import DataContainer, Model
+from dynasir import DataContainer, Model
 
 container = DataContainer(covid_data)  # mode='cumulative' (default)
 model = Model(container, start='2020-01-01', stop='2020-12-31')
@@ -647,7 +647,7 @@ annual_forecast = model.results['I']  # Direct incident cases
 - statsmodels ARIMA - classical time series
 - Classical SEIR models - compartmental dynamics
 
-**Epydemics Should**:
+**DynaSIR Should**:
 - Match SEIR on compartmental dynamics
 - Match Prophet on seasonal patterns
 - Outperform ARIMA on outbreak detection
@@ -868,7 +868,7 @@ model.evaluate_forecast(testing_data, compartment_codes)
 
 ```python
 import pandas as pd
-from epydemics import DataContainer, Model
+from dynasir import DataContainer, Model
 
 # Annual incident cases (can vary)
 measles_data = pd.DataFrame({
@@ -932,7 +932,7 @@ model.forecast(steps=24)      # 2 years ahead
 
 ```python
 # v0.7.0/v0.8.0 code works without modification
-from epydemics import DataContainer, Model, process_data_from_owid
+from dynasir import DataContainer, Model, process_data_from_owid
 
 raw_data = process_data_from_owid(iso_code="USA")
 container = DataContainer(raw_data, window=7)  # Defaults OK

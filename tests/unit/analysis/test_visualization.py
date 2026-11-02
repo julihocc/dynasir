@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from epydemics.analysis.visualization import visualize_results
+from dynasir.analysis.visualization import visualize_results
 
 
 @pytest.fixture
@@ -63,12 +63,11 @@ def sample_testing_data():
 
 def test_visualize_results_imports():
     """Test that visualization functions can be imported."""
-    from epydemics.analysis.visualization import visualize_results
+    from dynasir.analysis.visualization import visualize_results
 
     assert callable(visualize_results)
 
 
-@patch("matplotlib.pyplot.show")
 @patch("matplotlib.pyplot.plot")
 @patch("matplotlib.pyplot.xlabel")
 @patch("matplotlib.pyplot.ylabel")
@@ -76,9 +75,7 @@ def test_visualize_results_imports():
 @patch("matplotlib.pyplot.legend")
 @patch("matplotlib.pyplot.grid")
 @patch("matplotlib.pyplot.yscale")
-@patch("matplotlib.pyplot.tight_layout")
 def test_visualize_results_basic_call(
-    mock_tight_layout,
     mock_yscale,
     mock_grid,
     mock_legend,
@@ -86,7 +83,6 @@ def test_visualize_results_basic_call(
     mock_ylabel,
     mock_xlabel,
     mock_plot,
-    mock_show,
     sample_results,
 ):
     """Test basic visualization function call."""
@@ -100,8 +96,8 @@ def test_visualize_results_basic_call(
     mock_title.assert_called()
     mock_legend.assert_called()
     mock_grid.assert_called_with(True, alpha=0.3)
-    mock_tight_layout.assert_called()
-    mock_show.assert_called()
+    # Note: visualize_results() doesn't call tight_layout() or show()
+    # to allow callers to customize the plot before displaying
 
 
 @patch("matplotlib.pyplot.show")
@@ -208,7 +204,7 @@ def test_visualize_results_alpha_parameter(mock_plot, mock_show, sample_results)
 def test_visualize_results_constants_usage():
     """Test that visualization uses the correct constants."""
     # This test ensures that constants are properly imported and used
-    from epydemics.core.constants import (
+    from dynasir.core.constants import (
         CENTRAL_TENDENCY_METHODS,
         COMPARTMENT_LABELS,
         METHOD_COLORS,
@@ -271,7 +267,7 @@ def test_visualize_results_testing_data_missing_column(sample_results):
 def test_backward_compatibility_imports():
     """Test that visualization functions maintain backward compatibility."""
     # Should be able to import from analysis module
-    from epydemics.analysis import visualize_results
+    from dynasir.analysis import visualize_results
 
     assert callable(visualize_results)
 

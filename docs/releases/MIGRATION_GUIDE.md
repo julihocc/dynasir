@@ -1,6 +1,6 @@
 # Migration Guide: v0.5.x to v0.6.x API
 
-**Target Audience**: Users upgrading from epydemics v0.5.x to v0.6.x
+**Target Audience**: Users upgrading from dynasir v0.5.x to v0.6.x
 
 **Summary**: Version 0.6.0 introduced a simplified, more intuitive API for the Model class. The old API method names remain available with deprecation warnings to ensure backward compatibility.
 
@@ -46,7 +46,7 @@ The Model class methods have been renamed to use simpler, more intuitive names:
 
 **Before (v0.5.x):**
 ```python
-from epydemics import DataContainer, Model, process_data_from_owid
+from dynasir import DataContainer, Model, process_data_from_owid
 
 # Load data
 raw_data = process_data_from_owid(iso_code="OWID_WRL")
@@ -65,7 +65,7 @@ model.generate_result()
 
 **After (v0.6.x):**
 ```python
-from epydemics import DataContainer, Model, process_data_from_owid
+from dynasir import DataContainer, Model, process_data_from_owid
 
 # Load data
 raw_data = process_data_from_owid(iso_code="OWID_WRL")
@@ -96,7 +96,7 @@ model.generate_result()
 **Before (v0.5.x):**
 ```python
 # Setup
-from epydemics import DataContainer, Model, process_data_from_owid
+from dynasir import DataContainer, Model, process_data_from_owid
 
 # Load global COVID-19 data
 data = process_data_from_owid(iso_code="OWID_WRL")
@@ -126,7 +126,7 @@ R0_forecast = model.forecast_R0()
 **After (v0.6.x):**
 ```python
 # Setup
-from epydemics import DataContainer, Model, process_data_from_owid
+from dynasir import DataContainer, Model, process_data_from_owid
 
 # Load global COVID-19 data
 data = process_data_from_owid(iso_code="OWID_WRL")
@@ -225,7 +225,7 @@ model.visualize_results("D", testing_data, log_response=True)
 
 1. **Data loading and preprocessing**
    ```python
-   from epydemics import process_data_from_owid, DataContainer
+   from dynasir import process_data_from_owid, DataContainer
    data = process_data_from_owid(iso_code="OWID_WRL")
    container = DataContainer(data, window=7)
    ```
@@ -255,8 +255,8 @@ model.visualize_results("D", testing_data, log_response=True)
 
 6. **Constants and utilities**
    ```python
-   from epydemics import COMPARTMENTS, RATIOS, FORECASTING_LEVELS
-   from epydemics import prepare_for_logit_function
+   from dynasir import COMPARTMENTS, RATIOS, FORECASTING_LEVELS
+   from dynasir import prepare_for_logit_function
    ```
 
 ---
@@ -508,7 +508,7 @@ print("Migration verified: Results are identical")
 - **Documentation**: See `CLAUDE.md` for development guide
 - **Examples**: Check `examples/global_forecasting.ipynb` for updated examples
 - **Tutorial**: See `TUTORIAL.md` for comprehensive walkthrough
-- **Issues**: Report migration problems at https://github.com/julihocc/epydemics/issues
+- **Issues**: Report migration problems at https://github.com/julihocc/dynasir/issues
 
 ### Support
 
@@ -518,7 +518,7 @@ If you encounter issues during migration:
 2. Review the deprecation warning messages
 3. Test with a small dataset first
 4. Open an issue on GitHub with:
-   - Your epydemics version
+   - Your dynasir version
    - Code example showing the problem
    - Full error message or unexpected behavior
 
@@ -539,4 +539,4 @@ If you encounter issues during migration:
 ---
 
 *Last updated: November 26, 2025*
-*For epydemics v0.6.1-dev*
+*For dynasir v0.6.1-dev*

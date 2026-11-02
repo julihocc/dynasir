@@ -72,7 +72,7 @@ Enable the VAR model to automatically select appropriate lag orders based on dat
 
 ### Implementation
 
-**Location**: `src/epydemics/models/sird.py`, `Model.fit_model()` method
+**Location**: `src/dynasir/models/sird.py`, `Model.fit_model()` method
 
 **Key Logic**:
 ```python
@@ -135,7 +135,7 @@ Enable seamless conversion of forecasts between different frequencies (e.g., dai
 
 ### Implementation
 
-**Location**: `src/epydemics/models/sird.py`, `Model.aggregate_forecast()` method
+**Location**: `src/dynasir/models/sird.py`, `Model.aggregate_forecast()` method
 
 **Key Features**:
 
@@ -219,7 +219,7 @@ Automatically detect seasonal patterns appropriate to data frequency, enabling b
 
 ### Implementation
 
-**Location**: `src/epydemics/analysis/seasonality.py` (NEW module)
+**Location**: `src/dynasir/analysis/seasonality.py` (NEW module)
 
 **Core Class**: `SeasonalPatternDetector`
 
@@ -306,7 +306,7 @@ Enable support for business day (trading day) frequencies, common in financial e
 
 ### Implementation
 
-**Location**: `src/epydemics/data/frequency_handlers.py` + `container.py`
+**Location**: `src/dynasir/data/frequency_handlers.py` + `container.py`
 
 **New Handler Class**: `BusinessDayFrequencyHandler`
 
@@ -499,7 +499,7 @@ AGGREGATION_FILL_METHOD=ffill          # NaN handling
 ### Python Configuration
 
 ```python
-from epydemics.core.config import get_settings
+from dynasir.core.config import get_settings
 
 settings = get_settings()
 
@@ -594,7 +594,7 @@ settings.AGGREGATION_METHOD           # Default: "sum"
 ### Single Frequency Workflow
 
 ```python
-from epydemics import DataContainer, Model
+from dynasir import DataContainer, Model
 
 # 1. Load data
 data = pd.read_csv('measles.csv', index_col='date', parse_dates=True)
@@ -625,7 +625,7 @@ print(results.summary())
 ### Frequency-Specific Parameters
 
 ```python
-from epydemics.data.frequency_handlers import get_frequency_handler
+from dynasir.data.frequency_handlers import get_frequency_handler
 
 # Get handler for specific frequency
 handler = get_frequency_handler('annual')

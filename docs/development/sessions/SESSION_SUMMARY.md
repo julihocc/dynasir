@@ -19,7 +19,7 @@
 - ✅ Updated error messages to reference new method names
 
 #### Files Modified:
-- `src/epydemics/models/sird.py`
+- `src/dynasir/models/sird.py`
   - Lines 247-249: Updated `forecast_R0()` docstring examples
   - Line 267: Updated error message
 

@@ -2,7 +2,7 @@
 
 ## Class Overview
 
-The DataContainer class is responsible for data preprocessing, validation, and feature engineering in the epydemics package. It transforms raw epidemiological data into a format suitable for SIRD modeling.
+The DataContainer class is responsible for data preprocessing, validation, and feature engineering in the dynasir package. It transforms raw epidemiological data into a format suitable for SIRD modeling.
 
 ## Current Structure
 
@@ -82,7 +82,7 @@ def __init__(self, raw_data, window=7):
 ### New Module Structure
 
 ```
-epydemics/data/
+dynasir/data/
 ├── __init__.py
 ├── container.py       # DataContainer class
 ├── validation.py      # validate_data function
@@ -230,7 +230,7 @@ D(t+1) = D(t) + γ(t) * I(t)
 ### New Module Structure
 
 ```
-epydemics/models/
+dynasir/models/
 ├── __init__.py
 ├── base.py           # BaseModel, SIRDModelMixin
 ├── sird.py           # SIRDModel class (main implementation)
@@ -338,9 +338,9 @@ This is a strict requirement from the user.
 
 ---
 
-# Refactoring Plan for `epydemics/epydemics.py`
+# Refactoring Plan for `dynasir/dynasir.py`
 
-This plan outlines the steps to refactor the monolithic `epydemics/epydemics.py` file to improve module structure, separation of concerns, and overall architecture.
+This plan outlines the steps to refactor the monolithic `dynasir/dynasir.py` file to improve module structure, separation of concerns, and overall architecture.
 
 ## Objectives
 
@@ -351,37 +351,37 @@ This plan outlines the steps to refactor the monolithic `epydemics/epydemics.py`
 ## Proposed Steps
 
 1. **Move Constants:**
-    - Remove constant definitions (e.g., `ratios`, `logit_ratios`, `forecasting_levels`, `compartments`, `compartment_labels`, `central_tendency_methods`, `method_names`, `method_colors`) from `epydemics/epydemics.py`.
-    - Add an import statement in `epydemics/epydemics.py` to import these constants from `epydemics.core.constants`.
+    - Remove constant definitions (e.g., `ratios`, `logit_ratios`, `forecasting_levels`, `compartments`, `compartment_labels`, `central_tendency_methods`, `method_names`, `method_colors`) from `dynasir/dynasir.py`.
+    - Add an import statement in `dynasir/dynasir.py` to import these constants from `dynasir.core.constants`.
 
 2. **Move Exceptions:**
-    - Move the `NotDataFrameError` exception from `epydemics/epydemics.py` to `epydemics/core/exceptions.py`.
-    - Update imports in `epydemics/epydemics.py` and any other affected files to reflect the new location.
+    - Move the `NotDataFrameError` exception from `dynasir/dynasir.py` to `dynasir/core/exceptions.py`.
+    - Update imports in `dynasir/dynasir.py` and any other affected files to reflect the new location.
 
 3. **Move Data Processing Functions:**
-    - Relocate functions related to data processing (`prepare_for_logit_function`, `logit_function`, `logistic_function`, `add_logit_ratios`, `validate_data`, `process_data_from_owid`, `preprocess_data`, `reindex_data`, `feature_engineering`) from `epydemics/epydemics.py`.
-    - These functions should be moved to `epydemics/data/container.py` or a newly created `epydemics/data/processing.py` if `container.py` becomes too large or specific to the `DataContainer` class. For now, the initial target is `epydemics/data/container.py`.
+    - Relocate functions related to data processing (`prepare_for_logit_function`, `logit_function`, `logistic_function`, `add_logit_ratios`, `validate_data`, `process_data_from_owid`, `preprocess_data`, `reindex_data`, `feature_engineering`) from `dynasir/dynasir.py`.
+    - These functions should be moved to `dynasir/data/container.py` or a newly created `dynasir/data/processing.py` if `container.py` becomes too large or specific to the `DataContainer` class. For now, the initial target is `dynasir/data/container.py`.
     - Update imports as necessary.
 
 4. **Move `DataContainer` class:**
-    - Move the `DataContainer` class definition from `epydemics/epydemics.py` to `epydemics/data/container.py`.
-    - Ensure all necessary imports for `DataContainer` are present in `epydemics/data/container.py` and removed from `epydemics/epydemics.py`.
+    - Move the `DataContainer` class definition from `dynasir/dynasir.py` to `dynasir/data/container.py`.
+    - Ensure all necessary imports for `DataContainer` are present in `dynasir/data/container.py` and removed from `dynasir/dynasir.py`.
 
 5. **Move `Model` class:**
-    - Move the `Model` class (and all its associated methods) from `epydemics/epydemics.py` to `epydemics/models/base.py`.
-    - Adjust imports in `epydemics/epydemics.py` and `epydemics/models/base.py` accordingly.
+    - Move the `Model` class (and all its associated methods) from `dynasir/dynasir.py` to `dynasir/models/base.py`.
+    - Adjust imports in `dynasir/dynasir.py` and `dynasir/models/base.py` accordingly.
 
 6. **Move Analysis/Visualization Functions:**
-    - Relocate `visualize_results` function from `epydemics/epydemics.py` to `epydemics/analysis/visualization.py`.
-    - Relocate `evaluate_forecast` function from `epydemics/epydemics.epydemics.py` to `epydemics/analysis/evaluation.py`.
+    - Relocate `visualize_results` function from `dynasir/dynasir.py` to `dynasir/analysis/visualization.py`.
+    - Relocate `evaluate_forecast` function from `dynasir/dynasir.dynasir.py` to `dynasir/analysis/evaluation.py`.
     - Update imports in all affected files.
 
 7. **Handle Logging Configuration:**
-    - Review the logging configuration (`logging.basicConfig(...)`) in `epydemics/epydemics.py`.
-    - Decide whether it should be moved to `epydemics/__init__.py` for package-wide configuration, or to a dedicated utility module (e.g., `epydemics/utils/logging.py`), or remain in a main entry point if `epydemics.py` retains that role.
+    - Review the logging configuration (`logging.basicConfig(...)`) in `dynasir/dynasir.py`.
+    - Decide whether it should be moved to `dynasir/__init__.py` for package-wide configuration, or to a dedicated utility module (e.g., `dynasir/utils/logging.py`), or remain in a main entry point if `dynasir.py` retains that role.
 
-8. **Clean up `epydemics/epydemics.py`:**
-    - After all functionalities are moved, `epydemics/epydemics.py` should primarily contain package-level imports or remain empty if its purpose is entirely subsumed by other modules.
+8. **Clean up `dynasir/dynasir.py`:**
+    - After all functionalities are moved, `dynasir/dynasir.py` should primarily contain package-level imports or remain empty if its purpose is entirely subsumed by other modules.
     - Remove any unused imports.
 
 9. **Verification and Testing:**
@@ -394,7 +394,7 @@ This plan outlines the steps to refactor the monolithic `epydemics/epydemics.py`
 
 ---
 
-# 🚀 Comprehensive Refactoring Plan for Epydemics v1.0
+# 🚀 Comprehensive Refactoring Plan for DynaSIR v1.0
 
 **Date Created**: September 12, 2025
 **Current Version**: v0.5.0
@@ -403,7 +403,7 @@ This plan outlines the steps to refactor the monolithic `epydemics/epydemics.py`
 
 ## 📋 Current State Analysis
 
-The existing code is a **400+ line single-file module** (`epydemics.py`) with:
+The existing code is a **400+ line single-file module** (`dynasir.py`) with:
 
 ### **Current Architecture**
 
@@ -453,7 +453,7 @@ method_colors = {...}
 ## 🏗️ Proposed Package Structure
 
 ```
-epydemics/
+dynasir/
 ├── __init__.py                 # Public API (backward compatibility)
 ├── core/
 │   ├── __init__.py
@@ -869,7 +869,7 @@ def feature_engineering(data: pd.DataFrame) -> pd.DataFrame:
 ```python
 # core/exceptions.py
 class EpidemicsError(Exception):
-    """Base exception for epydemics package."""
+    """Base exception for dynasir package."""
     pass
 
 class DataValidationError(EpidemicsError):
@@ -989,7 +989,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "epydemics"
+name = "dynasir"
 version = "1.0.0"
 description = "Advanced epidemiological modeling and forecasting"
 readme = "README.md"
@@ -1053,7 +1053,7 @@ disallow_untyped_defs = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "--cov=epydemics --cov-report=html --cov-report=term"
+addopts = "--cov=dynasir --cov-report=html --cov-report=term"
 ```
 
 ## 🔄 Backward Compatibility Strategy
@@ -1064,8 +1064,8 @@ addopts = "--cov=epydemics --cov-report=html --cov-report=term"
 
    ```python
    # This must continue to work identically
-   from epydemics import DataContainer, Model, process_data_from_owid
-   from epydemics import ratios, compartments, compartment_labels
+   from dynasir import DataContainer, Model, process_data_from_owid
+   from dynasir import ratios, compartments, compartment_labels
    ```
 
 2. **Behavioral Compatibility**: All existing code produces identical results
@@ -1272,7 +1272,7 @@ The refactoring will be considered successful when:
 
 ---
 
-# 🗺️ Epydemics Refactoring Roadmap
+# 🗺️ DynaSIR Refactoring Roadmap
 
 **Version:** 0.7.0-dev
 **Date Started:** September 12, 2025
@@ -1304,15 +1304,15 @@ The refactoring will be considered successful when:
 - **Status:** COMPLETED ✅
 - **Date:** Sept 12, 2025
 - **Details:**
-  - Created exception hierarchy with EpydemicsError base class
+  - Created exception hierarchy with DynaSIRError base class
   - Enhanced error handling with specific exceptions
   - Full TDD approach with comprehensive test coverage
   - Proper inheritance and documentation
 - **Files Created:**
-  - `epydemics/core/exceptions.py`
+  - `dynasir/core/exceptions.py`
   - `tests/unit/core/test_exceptions.py`
 - **Exceptions Created:**
-  - `EpydemicsError` (base class)
+  - `DynaSIRError` (base class)
   - `NotDataFrameError` (type validation)
   - `DataValidationError` (data integrity)
   - `DateRangeError` (temporal validation)
@@ -1365,16 +1365,16 @@ The refactoring will be considered successful when:
 - **Status:** COMPLETED ✅
 - **Date:** Sept 12, 2025
 - **Details:**
-  - Created modular directory structure: `epydemics/{core,data,models,analysis,utils}/`
+  - Created modular directory structure: `dynasir/{core,data,models,analysis,utils}/`
   - Added `__init__.py` files for all modules
   - Established proper package hierarchy
   - Verified imports work correctly
 - **Files Created:**
-  - `epydemics/core/__init__.py`
-  - `epydemics/data/__init__.py`
-  - `epydemics/models/__init__.py`
-  - `epydemics/analysis/__init__.py`
-  - `epydemics/utils/__init__.py`
+  - `dynasir/core/__init__.py`
+  - `dynasir/data/__init__.py`
+  - `dynasir/models/__init__.py`
+  - `dynasir/analysis/__init__.py`
+  - `dynasir/utils/__init__.py`
 - **Test Coverage:** Integration tests validate structure
 
 #### ✅ Task 2: Initialize test framework
@@ -1400,11 +1400,11 @@ The refactoring will be considered successful when:
 - **Date:** Sept 12, 2025
 - **Details:**
   - Followed TDD approach: tests first, implementation second
-  - Extracted 5 constant lists from original epydemics.py
+  - Extracted 5 constant lists from original dynasir.py
   - Added proper type hints using `typing.Final`
   - Comprehensive documentation and **all** exports
 - **Files Created:**
-  - `epydemics/core/constants.py`
+  - `dynasir/core/constants.py`
   - `tests/unit/core/test_constants.py`
 - **Constants Extracted:**
   - `RATIOS = ["alpha", "beta", "gamma"]`
@@ -1439,7 +1439,7 @@ The refactoring will be considered successful when:
 - **Status:** COMPLETED ✅
 - **Date:** Sept 12, 2025
 - **Details:**
-  - Organized main `epydemics/__init__.py` with specific imports
+  - Organized main `dynasir/__init__.py` with specific imports
   - Removed star imports for better code quality
   - Added comprehensive **all** exports list
   - Verified all backward compatibility maintained
@@ -1448,8 +1448,8 @@ The refactoring will be considered successful when:
   ```python
   # Specific imports for clean namespace
   from .core.constants import (RATIOS, LOGIT_RATIOS, ...)
-  from .core.exceptions import (EpydemicsError, ...)
-  from .epydemics import (DataContainer, Model, ...)
+  from .core.exceptions import (DynaSIRError, ...)
+  from .dynasir import (DataContainer, Model, ...)
   ```
 
 #### ✅ Task 10: Phase 1 validation
@@ -1479,40 +1479,40 @@ The refactoring will be considered successful when:
 
 - **Status:** COMPLETED ✅
 - **Date:** September 12, 2025
-- **Files:** `epydemics/data/container.py`, `tests/test_data_container.py`
+- **Files:** `dynasir/data/container.py`, `tests/test_data_container.py`
 - **Functionality:** Complete data preprocessing, feature engineering, SIRD calculations
 - **Test Results:** 19/20 tests passing (1 minor logging issue)
 
 #### ✅ Task 2: Create abstract base classes
 
 - **Status:** COMPLETED ✅
-- **Files:** `epydemics/models/base.py`
+- **Files:** `dynasir/models/base.py`
 - **Features:** BaseModel ABC, SIRDModelMixin, proper inheritance patterns
 - **Interface:** Standardized model API with type hints
 
 #### ✅ Task 3: Extract Model class
 
 - **Status:** COMPLETED ✅
-- **Files:** `epydemics/models/sird.py`
+- **Files:** `dynasir/models/sird.py`
 - **Functionality:** VAR time series modeling, SIRD simulation, forecasting, evaluation
 - **Test Results:** 19/23 tests passing (4 minor setup issues)
 
 #### ✅ Task 4: Extract transformation utilities
 
 - **Status:** COMPLETED ✅
-- **Files:** `epydemics/utils/transformations.py`
+- **Files:** `dynasir/utils/transformations.py`
 - **Functions:** logit/logistic transformations, data preparation, ratio bounds handling
 
 #### ✅ Task 5: Enhanced constants organization
 
 - **Status:** COMPLETED ✅
-- **Files:** `epydemics/core/constants.py`
+- **Files:** `dynasir/core/constants.py`
 - **Features:** Added visualization constants, method mappings, backward compatibility
 
 #### ✅ Task 6: Update modular imports
 
 - **Status:** COMPLETED ✅
-- **Files:** `epydemics/__init__.py`, `epydemics/models/__init__.py`, `epydemics/utils/__init__.py`
+- **Files:** `dynasir/__init__.py`, `dynasir/models/__init__.py`, `dynasir/utils/__init__.py`
 - **Achievement:** Clean modular structure with backward compatibility
 
 #### ✅ Task 7: Clean main module
@@ -1561,7 +1561,7 @@ The refactoring will be considered successful when:
 
 **Technical Validation:**
 
-- Import validation: ✅ `from epydemics import DataContainer, Model` works
+- Import validation: ✅ `from dynasir import DataContainer, Model` works
 - Model initialization: ✅ All 4 initialization tests passing
 - Core functionality: ✅ DataContainer and Model creation successful
 - VAR modeling: ✅ Model creation and fitting operational (minor data issue noted)
@@ -1633,13 +1633,13 @@ tests/unit/core/test_constants.py
 - **Date:** Sept 12, 2025
 - **Details:**
   - Extracted `visualize_results` and `evaluate_forecast` functions from Model class
-  - Created `epydemics/analysis/` module with proper structure
+  - Created `dynasir/analysis/` module with proper structure
   - Maintained backward compatibility through delegation pattern
   - Enhanced function interfaces with better type annotations
 - **Files Created:**
-  - `epydemics/analysis/__init__.py`
-  - `epydemics/analysis/visualization.py`
-  - `epydemics/analysis/evaluation.py`
+  - `dynasir/analysis/__init__.py`
+  - `dynasir/analysis/visualization.py`
+  - `dynasir/analysis/evaluation.py`
   - `tests/unit/analysis/test_visualization.py`
   - `tests/unit/analysis/test_evaluation.py`
 
@@ -1650,7 +1650,7 @@ tests/unit/core/test_constants.py
 - **Details:**
   - Replaced deprecated `fillna(method="ffill")` with `.ffill()`
   - Replaced deprecated `fillna(method="bfill")` with `.bfill()`
-  - Updated codebase across data/container.py, utils/transformations.py, epydemics.py
+  - Updated codebase across data/container.py, utils/transformations.py, dynasir.py
   - No more deprecation warnings in pandas operations
 
 #### ✅ Type Safety & Interface Improvements
@@ -1710,9 +1710,9 @@ tests/unit/core/test_constants.py
 ## 📁 Current File Structure
 
 ```
-epydemics/
+dynasir/
 ├── __init__.py                 # ✅ Updated with modular imports
-├── epydemics.py               # 📦 Original file (to be gradually extracted)
+├── dynasir.py               # 📦 Original file (to be gradually extracted)
 ├── core/
 │   ├── __init__.py           # ✅ Created
 │   ├── constants.py          # ✅ Implemented with full test coverage
@@ -1792,7 +1792,7 @@ With Phase 1 foundation complete (100%), we're ready to tackle the core function
 
 **Immediate Phase 2 objectives:**
 
-1. **DataContainer Extraction** - Extract from epydemics.py to data/container.py
+1. **DataContainer Extraction** - Extract from dynasir.py to data/container.py
 2. **Model Class Extraction** - Extract to models/sird.py with VAR implementation
 3. **API Design** - Create new clean interfaces alongside legacy support
 4. **Test Coverage Expansion** - Achieve 80%+ coverage on extracted components
@@ -1812,7 +1812,7 @@ With Phase 1 foundation complete (100%), we're ready to tackle the core function
 
 **PHASE 2 COMPLETION ACHIEVED**
 
-The comprehensive refactoring of Epydemics has successfully completed Phase 2, transforming a 440+ line monolithic codebase into a professional, modular architecture:
+The comprehensive refactoring of DynaSIR has successfully completed Phase 2, transforming a 440+ line monolithic codebase into a professional, modular architecture:
 
 ### Key Achievements
 
@@ -1833,7 +1833,7 @@ The comprehensive refactoring of Epydemics has successfully completed Phase 2, t
 
 ### Validation Results
 
-- Import compatibility: ✅ `from epydemics import DataContainer, Model` working
+- Import compatibility: ✅ `from dynasir import DataContainer, Model` working
 - Core functionality: ✅ DataContainer and Model initialization successful
 - Test coverage: ✅ 19/20 DataContainer tests, 19/23 Model tests passing
 - Architecture: ✅ Professional modular structure achieved

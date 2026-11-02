@@ -1,4 +1,4 @@
-# Release Notes: epydemics v0.7.0
+# Release Notes: dynasir v0.7.0
 
 **Release Date:** November 28, 2025  
 **Status:** Production Release
@@ -88,21 +88,21 @@ N = S + I + R + D + V (constant)
 ### From PyPI
 
 ```bash
-pip install --upgrade epydemics
+pip install --upgrade dynasir
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/julihocc/epydemics.git
-cd epydemics
+git clone https://github.com/julihocc/dynasir.git
+cd dynasir
 pip install -e .
 ```
 
 ## 🚀 Quick Start: SIRDV Example
 
 ```python
-from epydemics import DataContainer, Model, process_data_from_owid
+from dynasir import DataContainer, Model, process_data_from_owid
 
 # Load data with vaccination
 raw_data = process_data_from_owid(iso_code="ISR", include_vaccination=True)
@@ -205,10 +205,10 @@ MIT License - See LICENSE file for details
 
 ## 🔗 Links
 
-- **GitHub**: https://github.com/julihocc/epydemics
-- **PyPI**: https://pypi.org/project/epydemics/
+- **GitHub**: https://github.com/julihocc/dynasir
+- **PyPI**: https://pypi.org/project/dynasir/
 - **Documentation**: See `docs/` folder and example notebooks
-- **Issues**: https://github.com/julihocc/epydemics/issues
+- **Issues**: https://github.com/julihocc/dynasir/issues
 
 ## 📧 Support
 
@@ -219,4 +219,4 @@ For questions, issues, or contributions:
 
 ---
 
-**Full Changelog**: https://github.com/julihocc/epydemics/blob/main/CHANGELOG.md
+**Full Changelog**: https://github.com/julihocc/dynasir/blob/main/CHANGELOG.md

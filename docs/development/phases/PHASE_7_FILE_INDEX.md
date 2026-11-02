@@ -72,7 +72,7 @@
 
 ## Files Modified (2 files)
 
-### 1. Core Implementation: `src/epydemics/data/frequency_handlers.py`
+### 1. Core Implementation: `src/dynasir/data/frequency_handlers.py`
 
 **Changes**:
 - Lines 393-396: Added 'B' code recognition in pandas frequency inference
@@ -105,7 +105,7 @@
 - Lines 252: Registry mapping for 'B' code
 - Lines 258-262: Friendly name mappings ('business day', 'businessday', 'bday')
 
-### 2. Core Implementation: `src/epydemics/data/container.py`
+### 2. Core Implementation: `src/dynasir/data/container.py`
 
 **Changes**:
 - Line 149: Extended valid frequencies list
@@ -163,7 +163,7 @@ All Phase 7 work was additive - no existing files were removed, ensuring backwar
 
 ### Implementation Tier
 ```
-src/epydemics/data/
+src/dynasir/data/
 ├── container.py (1 line modified)
 └── frequency_handlers.py (19 lines modified)
 ```
@@ -210,8 +210,8 @@ tests/unit/data/
          
 cc97d6f Phase 7: Business day frequency support - complete multi-frequency system
          ├─ tests/unit/data/test_business_day_frequency.py added
-         ├─ src/epydemics/data/frequency_handlers.py modified
-         └─ src/epydemics/data/container.py modified
+         ├─ src/dynasir/data/frequency_handlers.py modified
+         └─ src/dynasir/data/container.py modified
 ```
 
 ---

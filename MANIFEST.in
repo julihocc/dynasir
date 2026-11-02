@@ -1,0 +1,11 @@
+include README.md
+include LICENSE
+include pyproject.toml
+
+# Include all source files for the DynaSIR package
+recursive-include src/dynasir *
+
+# Exclude tests and build artifacts
+recursive-exclude tests *
+recursive-exclude build *
+recursive-exclude dist *

@@ -6,7 +6,8 @@ import os
 from unittest.mock import patch
 
 import pytest
-from epydemics.core.config import Settings, get_settings
+
+from dynasir.core.config import Settings, get_settings
 
 
 @pytest.fixture(autouse=True)
@@ -32,7 +33,10 @@ class TestSettings:
         assert settings.VAR_MAX_LAG is None
         assert settings.VAR_CRITERION == "aic"
         assert settings.LOG_LEVEL == "INFO"
-        assert settings.LOG_FORMAT == "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        assert (
+            settings.LOG_FORMAT
+            == "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
 
     def test_environment_variables_override_defaults(self):
         """Test that environment variables can override default settings."""

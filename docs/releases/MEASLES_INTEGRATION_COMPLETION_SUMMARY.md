@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-The Measles Integration project has been successfully completed. The incidence mode feature enables Epydemics to model diseases with sporadic case patterns (measles, eliminated diseases) where incident cases can vary up/down rather than monotonically increase.
+The Measles Integration project has been successfully completed. The incidence mode feature enables DynaSIR to model diseases with sporadic case patterns (measles, eliminated diseases) where incident cases can vary up/down rather than monotonically increase.
 
 **Key Achievement**: Implementation required minimal code changes due to a crucial architectural insight - we forecast **rates** (α, β, γ, δ) rather than compartments (C, I, R, D), making the forecasting and simulation logic naturally mode-independent.
 
@@ -74,18 +74,18 @@ Input: I (can vary) → C = cumsum(I) → Rates → VAR Forecast → Simulation 
 
 ### Modified Files (3)
 
-1. **src/epydemics/data/validation.py**
+1. **src/dynasir/data/validation.py**
    - Added `validate_incidence_data()` function
    - Added mode parameter to `validate_data()`
    - Allows I to vary (no monotonicity constraint)
 
-2. **src/epydemics/data/features.py**
+2. **src/dynasir/data/features.py**
    - Added `_calculate_compartments_incidence()` helper
    - Added `_calculate_compartments_cumulative()` helper (refactor)
    - Added mode parameter to `feature_engineering()`
    - Unified rate calculations for both modes
 
-3. **src/epydemics/data/container.py**
+3. **src/dynasir/data/container.py**
    - Added mode parameter to `__init__()`
    - Store mode as instance attribute
    - Pass mode to validation and feature engineering
@@ -108,15 +108,15 @@ Input: I (can vary) → C = cumsum(I) → Rates → VAR Forecast → Simulation 
 
 ### Files NOT Changed (Surprisingly!)
 
-- **src/epydemics/models/forecasting/**
+- **src/dynasir/models/forecasting/**
   - No changes needed (forecasts rates)
   - VAR, Prophet, ARIMA backends work unchanged
   
-- **src/epydemics/models/simulation.py**
+- **src/dynasir/models/simulation.py**
   - No changes needed (uses compartment identities)
   - C = I + R + D holds regardless of mode
   
-- **src/epydemics/models/sird.py**
+- **src/dynasir/models/sird.py**
   - Mode inheritance already implemented (line 203)
   - No logic changes needed
 

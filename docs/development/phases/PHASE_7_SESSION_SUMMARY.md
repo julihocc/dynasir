@@ -40,7 +40,7 @@ Solution: Update both locations + detection logic
 ### 2. Implementation - Three-Part Fix
 
 #### Part 1: Container Frequency Validation
-**File**: `src/epydemics/data/container.py`, line 149
+**File**: `src/dynasir/data/container.py`, line 149
 
 ```python
 # Before
@@ -51,7 +51,7 @@ valid_frequencies = ["D", "B", "W", "ME", "YE"]
 ```
 
 #### Part 2: Frequency Detection - Pandas Inference
-**File**: `src/epydemics/data/frequency_handlers.py`, lines 393-396
+**File**: `src/dynasir/data/frequency_handlers.py`, lines 393-396
 
 ```python
 # Added check for 'B' before 'D' (to avoid confusion)
@@ -62,7 +62,7 @@ elif "D" in inferred_freq_str:
 ```
 
 #### Part 3: Frequency Detection - Manual Fallback
-**File**: `src/epydemics/data/frequency_handlers.py`, lines 400-415
+**File**: `src/dynasir/data/frequency_handlers.py`, lines 400-415
 
 ```python
 # Before (no business day support)
@@ -222,7 +222,7 @@ assert detected == "B"  # ✓ Correctly identified
 
 ### Core Implementation (3 files)
 
-1. **`src/epydemics/data/frequency_handlers.py`**
+1. **`src/dynasir/data/frequency_handlers.py`**
    - Added `BusinessDayFrequencyHandler` class (36 lines, Phase 7 new)
    - Updated `detect_frequency_from_index()`:
      - Added B check in pandas inference (1 line)
@@ -230,7 +230,7 @@ assert detected == "B"  # ✓ Correctly identified
      - Updated fallback exception handler (6 lines)
    - Total: ~13 lines modified/added for Phase 7
 
-2. **`src/epydemics/data/container.py`**
+2. **`src/dynasir/data/container.py`**
    - Updated `valid_frequencies` list: `["D", "B", "W", "ME", "YE"]` (1 line change)
 
 3. **`tests/unit/data/test_business_day_frequency.py`** (NEW, 300+ lines)

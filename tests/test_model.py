@@ -16,8 +16,8 @@ import pandas as pd
 import pytest
 
 # Import from the original module during Phase 2 transition
-from epydemics import Model
-from epydemics.data import DataContainer
+from dynasir import Model
+from dynasir.data import DataContainer
 
 
 class TestModelInitialization:
@@ -73,6 +73,13 @@ class TestModelInitialization:
 
         # Assert
         assert model.days_to_forecast == days_to_forecast
+        assert model.steps_to_forecast == days_to_forecast
+
+    def test_model_init_with_forecast_steps(self, sample_data_container):
+        model = Model(sample_data_container, steps_to_forecast=14)
+
+        assert model.steps_to_forecast == 14
+        assert model.days_to_forecast == 14
 
     def test_model_init_sets_logit_ratios_values(self, sample_data_container):
         """Test that Model extracts logit ratios values correctly."""
@@ -229,7 +236,6 @@ class TestModelVisualization:
         return model
 
     @pytest.mark.slow
-    @patch("matplotlib.pyplot.show")
     @patch("matplotlib.pyplot.plot")
     @patch("matplotlib.pyplot.title")
     @patch("matplotlib.pyplot.legend")
@@ -240,7 +246,6 @@ class TestModelVisualization:
         mock_legend,
         mock_title,
         mock_plot,
-        mock_show,
         model_with_results,
     ):
         """Test basic visualization functionality."""
@@ -252,7 +257,8 @@ class TestModelVisualization:
         assert mock_title.called
         assert mock_legend.called
         assert mock_grid.called
-        assert mock_show.called
+        # Note: visualize_results() sets up the plot but doesn't call show()
+        # to allow callers to customize before displaying
 
     @pytest.mark.slow
     @patch("matplotlib.pyplot.show")
@@ -428,9 +434,9 @@ class TestModelIntegration:
 
         # Assert - Should complete within reasonable time (30 seconds max)
         execution_time = end_time - start_time
-        assert execution_time < 30.0, (
-            f"Model workflow took {execution_time:.2f}s, expected <30s"
-        )
+        assert (
+            execution_time < 30.0
+        ), f"Model workflow took {execution_time:.2f}s, expected <30s"
 
     def test_model_backward_compatibility(self, sample_data_container):
         """Test that Model maintains backward compatibility with existing usage."""
@@ -636,9 +642,9 @@ class TestModelR0Calculations:
         for col in scenario_cols:
             parts = col.split("|")
             assert len(parts) == 3, f"Scenario name {col} should have 3 parts"
-            assert all(part in ["lower", "point", "upper"] for part in parts), (
-                f"Invalid scenario level in {col}"
-            )
+            assert all(
+                part in ["lower", "point", "upper"] for part in parts
+            ), f"Invalid scenario level in {col}"
 
     def test_R0_interpretation_threshold(self, sample_data_container):
         """Test R₀ interpretation around critical threshold of 1."""

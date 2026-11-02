@@ -3,7 +3,7 @@
 **Last Updated:** November 26, 2025
 **Current Branch:** fixing-data-problem  
 **Project Board:** https://github.com/users/julihocc/projects/3  
-**Milestone:** https://github.com/julihocc/epydemics/milestone/2
+**Milestone:** https://github.com/julihocc/dynasir/milestone/2
 **Phase:** Post Phase 3 - Maintenance and Improvements
 
 ---
@@ -54,7 +54,7 @@
 
 **Implementation:**
 ```python
-# In src/epydemics/models/sird.py
+# In src/dynasir/models/sird.py
 
 import warnings
 
@@ -124,13 +124,13 @@ def test_forecast_R0_scenarios(fitted_model):
 **Rationale:** Notebook has superior formatting not in library
 
 **Verify Existence:**
-- `epydemics.analysis.formatting.format_time_axis()`
-- `epydemics.analysis.formatting.add_forecast_highlight()`
-- `epydemics.analysis.formatting.set_professional_style()`
+- `dynasir.analysis.formatting.format_time_axis()`
+- `dynasir.analysis.formatting.add_forecast_highlight()`
+- `dynasir.analysis.formatting.set_professional_style()`
 
 **If Missing, Add:**
 ```python
-# src/epydemics/analysis/formatting.py
+# src/dynasir/analysis/formatting.py
 
 def format_time_axis(ax, data_index, time_range="auto", rotation=45, labelsize=10):
     """Apply consistent time axis formatting."""
@@ -187,7 +187,7 @@ def add_forecast_highlight(ax, start, end, color="#FBD38D", alpha=0.12):
 
 **Design:**
 ```python
-# In src/epydemics/models/sird.py
+# In src/dynasir/models/sird.py
 
 def run_simulations(self, n_jobs=None):
     """Run epidemic simulations with optional parallelization.

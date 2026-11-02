@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from epydemics import DataContainer, Model
+from dynasir import DataContainer, Model
 
 
 class TestAggregrateForecast:

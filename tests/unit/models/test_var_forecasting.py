@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from epydemics.data import DataContainer
-from epydemics.models.var_forecasting import VARForecasting
+from dynasir.data import DataContainer
+from dynasir.models.var_forecasting import VARForecasting
 
 
 class TestVARForecastingSIRD:

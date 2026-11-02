@@ -1,278 +1,178 @@
-# Release v0.9.0 - Incidence Mode (Measles Integration Complete)
+# Release Notes - v0.9.0
 
-**Release Date**: December 8, 2025  
-**Status**: Production Ready  
-**Compatibility**: 100% Backward Compatible with v0.8.0
+**Release Date**: December 23, 2025
 
-## Overview
+## 🎯 Native Annual Frequency Support
 
-Version 0.9.0 completes the Measles Integration project by introducing **incidence mode** support, enabling Epydemics to model diseases with sporadic case patterns (measles, eliminated diseases) where incident cases can vary up/down rather than monotonically increase.
+Version 0.9.0 introduces native annual frequency support with fractional recovery lag, enabling epidemiological modeling of eliminated diseases (measles, polio, rubella) with sporadic outbreak patterns.
 
-### Key Innovation
+### The Problem We Solved
 
-**Dual-mode data support** - the system now handles both:
-- **Cumulative mode** (default): C (cumulative cases) as input → I derived from dC
-- **Incidence mode** (NEW): I (incident cases) as input → C derived from cumsum(I)
+**Before v0.9.0**: Using annual frequency with incidence mode failed with:
+```
+LinAlgError: 1-th leading minor of the array is not positive definite
+```
 
-**Architectural Insight**: The implementation required minimal code changes because we forecast **rates** (α, β, γ, δ) rather than compartments (C, I, R, D), making the forecasting and simulation engines naturally mode-independent.
+**Root Cause**: Integer recovery lag (14 days → 0 years) caused beta rate to be constant (1.0), creating a singular covariance matrix for VAR models.
 
-## What's New
+**After v0.9.0**: Beta varies naturally (0.038 to 1.0), VAR fits successfully, and forecasts work correctly.
 
-### Incidence Mode Support
+## ✨ New Features
 
-Enable modeling of diseases with non-monotonic case patterns:
+### Fractional Recovery Lag
+- **Annual Frequency**: 14 days = 0.0384 years (14/365)
+- **Monthly Frequency**: 14 days = 0.47 months (14/30)
+- **Linear Interpolation**: Smooth handling of fractional time shifts
+
+### Automatic Constant Column Detection
+- VAR models automatically detect constant columns (e.g., alpha = 1.0)
+- Uses `trend='n'` (no trend) to prevent multicollinearity errors
+- Handles elimination-phase disease patterns gracefully
+
+### Native Frequency Processing
+- Annual data stays annual (no artificial reindexing)
+- 15 annual observations remain 15 rows (not 5,475 daily rows)
+- Frequency-aware feature engineering and forecasting
+
+## 📊 Example Usage
 
 ```python
-# Measles: Annual incident cases (can vary up/down)
+import pandas as pd
+import numpy as np
+from dynasir import DataContainer, Model
+
+# Annual measles incident cases (Mexico 2010-2024)
+dates = pd.date_range("2010", periods=15, freq="YE")
 data = pd.DataFrame({
-    'I': [220, 55, 667, 164, 81, 34, 12, 0, 0, 4],  # NEW: Variable incident cases
-    'D': [1, 1, 3, 4, 4, 4, 4, 4, 4, 4],             # Cumulative deaths
-    'N': [120_000_000] * 10                          # Population
-})
+    "I": [220, 55, 667, 164, 81, 34, 12, 0, 0, 4, 18, 45, 103, 67, 89],
+    "D": [1, 1, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 7, 8, 9],
+    "N": [120_000_000] * 15
+}, index=dates)
 
-# Use incidence mode
-container = DataContainer(data, mode='incidence')  # NEW parameter
+# Native annual frequency + incidence mode
+container = DataContainer(data, mode="incidence", frequency="YE", window=1)
 model = Model(container)
-
-# Rest of workflow identical
 model.create_model()
-model.fit_model(max_lag=3)
-model.forecast(steps=5)
+model.fit_model(max_lag=3)  # ✅ Works! Beta varies: 0.038 to 1.0
+model.forecast(steps=5)      # Forecast 5 YEARS
 model.run_simulations(n_jobs=1)
 model.generate_result()
+
+print(model.results.C)  # Annual forecasts
 ```
 
-### Real-World Use Cases Enabled
+## 🔧 Technical Changes
 
-**Mexico Measles Data (2010-2024)**
+### Core Implementation
+
+**`src/dynasir/data/frequency_handlers.py`**
+- Changed `get_recovery_lag()` return type: `int` → `float`
+- `AnnualFrequencyHandler.get_recovery_lag()`: returns `14/365` (0.0384)
+- `MonthlyFrequencyHandler.get_recovery_lag()`: returns `14/30` (0.47)
+
+**`src/dynasir/data/features.py`**
+- Implemented fractional lag interpolation
+- Formula: `(1-weight) * shift(floor) + weight * shift(ceil)`
+- Applied to both cumulative and incidence modes
+
+**`src/dynasir/models/forecasting/var.py`**
+- Added automatic constant column detection
+- Uses `trend='n'` when constants present
+- Logs warnings for better debugging
+
+### Testing
+
+**New Tests**: +10 comprehensive integration tests
+- `test_fractional_recovery_lag_implementation`
+- `test_var_model_fits_with_annual_incidence`
+- `test_complete_annual_incidence_workflow`
+- `test_constant_column_detection`
+- `test_incidence_mode_preserves_variation`
+- `test_annual_frequency_no_reindexing`
+- `test_model_mode_propagation`
+- `test_fractional_lag_interpolation_accuracy`
+- `test_daily_data_unchanged`
+- `test_cumulative_mode_unchanged`
+
+**Updated Tests**: 51 frequency handler tests updated for fractional lags
+
+**Test Results**: 421/423 passing (99.5%)
+
+### Notebooks
+
+- ✅ All 6 example notebooks validated and passing
+- ✅ Deleted obsolete `06_annual_measles_workaround.ipynb`
+- ✅ Renamed `07_incidence_mode_measles.ipynb` → `06_incidence_mode_measles.ipynb`
+- ✅ Updated notebook 06 with v0.9.0 API
+
+## 🔄 Breaking Changes
+
+**None**. Version 0.9.0 is fully backward compatible with v0.8.0.
+
+## 📈 Performance
+
+- No performance degradation for existing workflows
+- Significant improvement for annual data (no artificial reindexing overhead)
+- Memory usage reduced for annual frequency data
+
+## 🚀 Migration Guide
+
+### No Migration Needed!
+
+Existing code continues to work without changes.
+
+### New Capability (Optional)
+
 ```python
-incident_cases = [
-    220, 55, 667, 164, 81,   # 2010-2014: sporadic outbreaks
-    34, 12, 0, 0, 4,         # 2015-2019: near elimination
-    18, 45, 103, 67, 89      # 2020-2024: reintroduction
-]
+# Old approach (v0.8.0): Would fail with LinAlgError
+container = DataContainer(annual_data, mode="incidence")
+
+# New approach (v0.9.0): Works natively
+container = DataContainer(annual_data, mode="incidence", frequency="YE")
 ```
 
-This pattern is **impossible to model** with traditional cumulative mode because:
-- Large outbreak (667 cases) followed by steep decline (55 next year)
-- Elimination periods (0 cases in 2016-2017)
-- Sporadic reintroduction (variable annual counts)
-- Non-monotonic pattern (traditional C must always increase)
+## 📚 Documentation
 
-### Features
+- **PR #138**: Full implementation details
+- **Notebook 06**: `incidence_mode_measles.ipynb` demonstrates complete workflow
+- **FIX_SUMMARY.md**: Technical documentation of the fractional lag fix
+- **TESTING_RESULTS.md**: Comprehensive test validation report
 
-#### 1. Automatic Mode Detection & Propagation
+## 🙏 Acknowledgments
 
-```python
-# Mode set once in DataContainer
-container = DataContainer(data, mode='incidence')
+This release addresses a critical limitation for modeling eliminated diseases with sporadic outbreak patterns. Special thanks to the epidemiology community for highlighting the need for native annual frequency support.
 
-# Automatically propagates through entire pipeline
-model = Model(container)
-assert model.mode == 'incidence'  # Inherited
+## 🐛 Known Issues
 
-# All downstream operations mode-aware
-model.create_model()   # Uses incidence-mode features
-model.forecast(30)     # Forecasts rates (mode-independent)
-model.run_simulations() # Simulates compartments (mode-independent)
-```
+- 2 pre-existing visualization test failures (unrelated to v0.9.0 changes)
+- See issue #141 for tracking
 
-#### 2. Unified Rate-Based Architecture
-
-Both modes calculate identical rates after feature engineering:
-- α(t): infection rate
-- β(t): recovery rate
-- γ(t): mortality rate
-- δ(t): vaccination rate (SIRDV only)
-
-**Cumulative mode**: C input → I = dC → rates → forecast → simulate  
-**Incidence mode**: I input → C = cumsum(I) → rates → forecast → simulate
-
-After rate calculation, both modes use the same code path.
-
-#### 3. Full SIRD/SIRDV Support
-
-Incidence mode works with both:
-- **SIRD**: 3 rates (α, β, γ), 27 simulation scenarios
-- **SIRDV**: 4 rates (α, β, γ, δ), 81 simulation scenarios
-
-#### 4. Validation & Error Handling
-
-```python
-# Incidence mode validation
-- Requires: I, D, N columns
-- Allows: I to vary (no monotonicity constraint)
-- Validates: D is monotonic (cumulative deaths)
-- Checks: Population consistency
-
-# Clear error messages
-try:
-    container = DataContainer(data, mode='invalid')
-except ValueError as e:
-    print(e)  # "Mode must be 'cumulative' or 'incidence'"
-```
-
-## Technical Details
-
-### Files Modified (5)
-
-**Core Implementation (3 files):**
-1. `src/epydemics/data/validation.py` - Added incidence validation
-2. `src/epydemics/data/features.py` - Dual-mode feature engineering
-3. `src/epydemics/data/container.py` - Mode parameter support
-
-**Test Coverage (2 files):**
-1. `tests/unit/data/test_incidence_mode.py` - 21 unit tests (NEW)
-2. `tests/integration/test_incidence_mode_workflow.py` - 6 E2E tests (NEW)
-
-### Files NOT Changed (Architectural Elegance)
-
-The following files required **no modifications** due to rate-based architecture:
-- `src/epydemics/models/forecasting/` - Forecasts rates, not compartments
-- `src/epydemics/models/simulation.py` - Uses C = I + R + D identity
-- `src/epydemics/models/sird.py` - Mode inheritance already implemented
-
-### Test Results
-
-```
-Total: 322 tests passing
-├── 316 existing tests (maintained, 0 regressions)
-├── 21 new unit tests (incidence mode)
-└── 6 new integration tests (E2E workflow)
-
-Skipped: 32 tests (optional Prophet/ARIMA dependencies)
-Failures: 0
-Time: ~28 seconds (unchanged)
-```
-
-### Test Coverage by Category
-
-**Unit Tests (21 new):**
-- Basic incidence calculations (I→C, dC=I)
-- SIRD compartment calculations
-- Rate calculations (α, β, γ, R0)
-- Cumulative vs incidence comparison
-- Validation and edge cases
-- SIRDV with vaccination
-- Real-world measles patterns
-
-**Integration Tests (6 new):**
-- DataContainer mode preservation
-- Model mode inheritance
-- Complete E2E workflow
-- Feature engineering validation
-- Realistic measles outbreak patterns
-
-## Backward Compatibility
-
-✅ **100% Backward Compatible**
-
-- Default mode is `'cumulative'` (existing behavior)
-- All 316 existing tests pass without modification
-- No breaking changes to API
-- No performance degradation
-- Existing code continues to work unchanged
-
-**Migration**: None needed! To use incidence mode, simply add `mode='incidence'` parameter.
-
-## Performance
-
-**No Performance Overhead**
-- Feature engineering: Same complexity O(n)
-- Forecasting: Identical (forecasts rates)
-- Simulation: Identical (uses compartment identities)
-- Test suite: ~28 seconds (unchanged)
-- Memory footprint: unchanged
-
-## Documentation
-
-### New Documentation
-- `INCIDENCE_MODE_PROGRESS.md` - Implementation progress tracking
-- `MEASLES_INTEGRATION_COMPLETION_SUMMARY.md` - Project completion summary
-
-### Updated Documentation
-- `CHANGELOG.md` - Comprehensive v0.9.0 entry
-- `src/epydemics/models/sird.py` - Docstrings with incidence mode examples
-- Example notebook 07 - Incidence mode measles workflow
-
-### Recommended Reading
-1. Start: `MEASLES_INTEGRATION_COMPLETION_SUMMARY.md` - High-level overview
-2. Details: `INCIDENCE_MODE_PROGRESS.md` - Implementation details
-3. Examples: `examples/notebooks/07_incidence_mode_measles.ipynb` - Practical tutorial
-4. API: Model class docstrings - Code-level documentation
-
-## Known Limitations
-
-1. **Annual Data Frequency**: Still requires workaround (reindex to daily then aggregate)
-   - Mitigation: Use `Model.aggregate_forecast()` method
-   - Future: Native frequency support in v0.10.0+
-
-2. **Small Sample Sizes**: Annual data has fewer observations
-   - Mitigation: Use lower lag orders (max_lag=2-3)
-   - Works well in practice for most use cases
-
-## Upgrade Instructions
-
-### From v0.8.0
-
-**No changes required** - v0.9.0 is fully backward compatible.
-
-To use new incidence mode:
-```python
-# Add mode='incidence' parameter
-container = DataContainer(data, mode='incidence')
-```
-
-### From v0.7.0
-
-1. Update to v0.8.0 first (multi-frequency support)
-2. Then update to v0.9.0 (incidence mode)
-
-Or directly update to v0.9.0 - includes all v0.8.0 features.
-
-## Installation
+## 📦 Installation
 
 ```bash
-# From PyPI (when published)
-pip install --upgrade epydemics==0.9.0
-
-# From GitHub
-pip install git+https://github.com/julihocc/epydemics.git@v0.9.0
+pip install dynasir==0.9.0
 ```
 
-## What's Next (v0.10.0 Roadmap)
+Or upgrade from previous version:
 
-1. **Native Frequency Support** - Eliminate daily reindexing workaround
-2. **Specialized Annual Methods** - Time series methods optimized for annual data
-3. **Enhanced Visualization** - Incidence-specific plotting utilities
-4. **Performance Optimizations** - Speed improvements for small sample sizes
-5. **Additional Backends** - LSTM implementation for incidence mode
+```bash
+pip install --upgrade dynasir
+```
 
-## Contributors
+## 🔗 Links
 
-- **Implementation**: GitHub Copilot (AI-assisted development)
-- **Supervision**: Juliho David Castillo Colmenares
-- **Testing**: Automated test suite (322 tests)
-- **Documentation**: Comprehensive guides and examples
+- **Full Changelog**: [v0.8.0...v0.9.0](https://github.com/julihocc/dynasir/compare/v0.8.0...v0.9.0)
+- **Pull Request**: [#138](https://github.com/julihocc/dynasir/pull/138)
+- **Documentation**: [USER_GUIDE.md](docs/USER_GUIDE.md)
+- **Examples**: [examples/notebooks/](examples/notebooks/)
 
-## Links
+## 🎉 What's Next
 
-- **GitHub**: https://github.com/julihocc/epydemics
-- **Issues**: https://github.com/julihocc/epydemics/issues
-- **Project Board**: https://github.com/users/julihocc/projects/5
-- **Documentation**: See repository docs/ folder
-
-## Release Assets
-
-- Source code (zip)
-- Source code (tar.gz)
-- `epydemics-0.9.0-py3-none-any.whl` (wheel package)
-- `epydemics-0.9.0.tar.gz` (source distribution)
+See our [roadmap](https://github.com/julihocc/dynasir/issues) for upcoming features:
+- Real-world measles data validation (#142)
+- Outbreak detection module (#124-126)
+- Additional frequency support
 
 ---
 
-**Thank you** to all users and contributors! We're excited to see what you build with incidence mode support.
-
-For questions or issues, please open a GitHub issue or discussion.
-
-**Happy modeling!** 🦠📊
+**Questions or Issues?** Please report at https://github.com/julihocc/dynasir/issues

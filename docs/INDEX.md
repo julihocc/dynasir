@@ -1,6 +1,6 @@
-# Epydemics Documentation Index
+# DynaSIR Documentation Index
 
-This directory contains organized development, release, and technical documentation for the Epydemics project.
+This directory contains organized development, release, and technical documentation for the DynaSIR project.
 
 ## 📁 Directory Structure
 
@@ -11,7 +11,7 @@ Located in the project root (`/`):
 - **[README.md](../README.md)** - Project overview, features, installation, getting started
 - **[CHANGELOG.md](../CHANGELOG.md)** - Detailed version history and changes
 - **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Contribution guidelines
-- **[TUTORIAL.md](../TUTORIAL.md)** - Step-by-step tutorial for using Epydemics
+- **[TUTORIAL.md](../TUTORIAL.md)** - Step-by-step tutorial for using DynaSIR
 - **[ARCHITECTURE.md](../ARCHITECTURE.md)** - High-level architecture overview
 - **[CLAUDE.md](../CLAUDE.md)** - Developer guide for AI assistants (Claude Code)
 
@@ -137,4 +137,4 @@ When adding new documentation:
 
 - **Examples**: See `examples/` directory for Jupyter notebooks
 - **Tests**: See `tests/` directory for test examples and patterns
-- **Source Code**: See `src/epydemics/` for implementation details
+- **Source Code**: See `src/dynasir/` for implementation details

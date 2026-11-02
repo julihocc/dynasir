@@ -16,7 +16,7 @@ This document summarizes the documentation updates made after fixing the `global
 
 ### 1. Import Error in Notebook
 **File:** `examples/global_forecasting.ipynb`
-**Error:** `ImportError: cannot import name 'compartment_labels' from 'epydemics'`
+**Error:** `ImportError: cannot import name 'compartment_labels' from 'dynasir'`
 
 **Root Cause:**
 - Notebook used lowercase `compartment_labels`
@@ -24,7 +24,7 @@ This document summarizes the documentation updates made after fixing the `global
 
 **Fix:**
 - Changed import from `compartment_labels` to `COMPARTMENT_LABELS`
-- Updated cell: `from epydemics import COMPARTMENT_LABELS`
+- Updated cell: `from dynasir import COMPARTMENT_LABELS`
 
 ### 2. Deprecated Method Names in Notebook
 **File:** `examples/global_forecasting.ipynb`
@@ -58,7 +58,7 @@ Also updated markdown cell documentation to reflect new method names.
 ### 1. examples/global_forecasting.ipynb
 **Changes:**
 - Cell `063ed265`: Import statement fixed
-  - `from epydemics import compartment_labels` → `from epydemics import COMPARTMENT_LABELS`
+  - `from dynasir import compartment_labels` → `from dynasir import COMPARTMENT_LABELS`
 - Cell `72ceda6a`: Model methods updated
   - `create_logit_ratios_model()` → `create_model()`
   - `fit_logit_ratios_model()` → `fit_model()`

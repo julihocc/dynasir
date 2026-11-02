@@ -188,9 +188,9 @@ fd5a331 feat(data): add incidence mode feature engineering
 ## Related Files
 
 - **Tests**: `tests/integration/test_incidence_mode_workflow.py`
-- **Feature Engineering**: `src/epydemics/data/features.py`
-- **DataContainer**: `src/epydemics/data/container.py`
-- **Model API**: `src/epydemics/models/sird.py`
+- **Feature Engineering**: `src/dynasir/data/features.py`
+- **DataContainer**: `src/dynasir/data/container.py`
+- **Model API**: `src/dynasir/models/sird.py`
 - **Fixtures**: `tests/conftest.py`
 
 ## References

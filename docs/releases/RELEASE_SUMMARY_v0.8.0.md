@@ -1,4 +1,4 @@
-# Epydemics v0.8.0 Release Summary
+# DynaSIR v0.8.0 Release Summary
 
 **Release Date**: December 7, 2025  
 **Release Type**: GitHub Pre-release (Not on PyPI)  
@@ -86,11 +86,11 @@ annual_forecast = model.aggregate_forecast(
 
 ```bash
 # Install from GitHub (address-measles-integration branch)
-pip install git+https://github.com/julihocc/epydemics.git@address-measles-integration
+pip install git+https://github.com/julihocc/dynasir.git@address-measles-integration
 
 # Or clone and install locally
-git clone -b address-measles-integration https://github.com/julihocc/epydemics.git
-cd epydemics
+git clone -b address-measles-integration https://github.com/julihocc/dynasir.git
+cd dynasir
 pip install -e .
 ```
 
@@ -122,11 +122,11 @@ Current v0.8.0 workarounds will continue to work in v0.9.0 for backward compatib
 
 ```bash
 # From PyPI (after publication)
-pip install epydemics==0.8.0
+pip install dynasir==0.8.0
 
 # From source
-git clone https://github.com/julihocc/epydemics.git
-cd epydemics
+git clone https://github.com/julihocc/dynasir.git
+cd dynasir
 git checkout v0.8.0
 pip install -e .
 ```
@@ -141,7 +141,7 @@ pytest
 pytest -k "frequency or temporal or annual"
 
 # With coverage
-pytest --cov=src/epydemics --cov-report=html
+pytest --cov=src/dynasir --cov-report=html
 ```
 
 All 291 tests pass with 45 new tests specific to v0.8.0 features.
@@ -182,12 +182,12 @@ All 291 tests pass with 45 new tests specific to v0.8.0 features.
 
 ## Support
 
-- **Issues**: https://github.com/julihocc/epydemics/issues
-- **Discussions**: https://github.com/julihocc/epydemics/discussions
+- **Issues**: https://github.com/julihocc/dynasir/issues
+- **Discussions**: https://github.com/julihocc/dynasir/discussions
 - **Email**: See `pyproject.toml` for contact info
 
 ---
 
-**Download**: [v0.8.0 Release](https://github.com/julihocc/epydemics/releases/tag/v0.8.0)
+**Download**: [v0.8.0 Release](https://github.com/julihocc/dynasir/releases/tag/v0.8.0)
 
-**Previous Release**: [v0.7.0](https://github.com/julihocc/epydemics/releases/tag/v0.7.0)
+**Previous Release**: [v0.7.0](https://github.com/julihocc/dynasir/releases/tag/v0.7.0)

@@ -1,10 +1,10 @@
-# Insights for Improving Epydemics: Annual Surveillance Data Support
+# Insights for Improving DynaSIR: Annual Surveillance Data Support
 
 ## Executive Summary
 
-Epydemics (v0.7.0) works excellently for COVID-19 but struggles with annual surveillance data like measles. This document provides actionable insights for extending epydemics to handle eliminated/endemic diseases with annual reporting.
+DynaSIR (v0.7.0) works excellently for COVID-19 but struggles with annual surveillance data like measles. This document provides actionable insights for extending dynasir to handle eliminated/endemic diseases with annual reporting.
 
-**Author Context**: Analysis based on attempting to model North American measles data (1980-2020) using epydemics.
+**Author Context**: Analysis based on attempting to model North American measles data (1980-2020) using dynasir.
 
 ---
 
@@ -24,7 +24,7 @@ Epydemics (v0.7.0) works excellently for COVID-19 but struggles with annual surv
 
 ### Example Data Comparison
 
-**COVID (what epydemics expects):**
+**COVID (what dynasir expects):**
 ```
 Date       | Cumulative | Daily New | Notes
 2020-03-01 |        100 |       100 | Growing
@@ -154,7 +154,7 @@ model.forecast(
 
 ### R0 Interpretation Issues
 
-**Current epydemics output:**
+**Current dynasir output:**
 ```
 USA R0 = 0.23
 ```
@@ -243,7 +243,7 @@ model = SIRDVCoverage(
 
 ## Problem 5: Forecasting Goals
 
-### What epydemics forecasts (COVID):
+### What dynasir forecasts (COVID):
 1. Future cumulative cases
 2. Hospital capacity needs
 3. Next wave timing
@@ -333,7 +333,7 @@ metrics = evaluate_forecast(
    - Return yearly forecasts from daily model
 
 3. **Enhance documentation**
-   - Clear examples of when NOT to use epydemics
+   - Clear examples of when NOT to use dynasir
    - Guidance on data frequency requirements
 
 ### Phase 2: Core Extensions
@@ -370,7 +370,7 @@ metrics = evaluate_forecast(
 
 ### Use Case 1: Measles Outbreak Forecasting
 ```python
-from epydemics import DataContainer, IncidenceModel
+from dynasir import DataContainer, IncidenceModel
 
 # Load annual incident cases (not cumulative!)
 data = pd.DataFrame({
@@ -517,7 +517,7 @@ Before release:
 
 ## Documentation Needs
 
-1. **When to use epydemics**
+1. **When to use dynasir**
    - COVID-like: Ongoing epidemic, daily data, cumulative reporting
    - Measles-like: Eliminated disease, annual surveillance, incident cases
    - Flu-like: Seasonal endemic, weekly data, cyclical patterns
@@ -549,13 +549,13 @@ Before release:
 
 ## Conclusion
 
-Epydemics is a powerful tool but needs extension for surveillance data. The core issues are:
+DynaSIR is a powerful tool but needs extension for surveillance data. The core issues are:
 
 1. **Cumulative vs incidence** paradigm
 2. **Time frequency** handling
 3. **Eliminated disease** dynamics
 
-With these enhancements, epydemics could become the go-to tool for:
+With these enhancements, dynasir could become the go-to tool for:
 - Eliminated disease surveillance (measles, polio)
 - Endemic disease forecasting (flu, pertussis)
 - Vaccine impact modeling

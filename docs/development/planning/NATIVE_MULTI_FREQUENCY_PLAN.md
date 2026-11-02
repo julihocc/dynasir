@@ -98,7 +98,7 @@ container = DataContainer(
 
 ### Phase 1: Core Infrastructure (Days 1-2)
 
-- [ ] Create `src/epydemics/data/frequency_handlers.py`
+- [ ] Create `src/dynasir/data/frequency_handlers.py`
 - [ ] Implement base `FrequencyHandler` class
 - [ ] Implement 4 concrete handlers (Annual, Monthly, Weekly, Daily)
 - [ ] Create frequency handler registry
@@ -137,16 +137,16 @@ container = DataContainer(
 ## File Changes Summary
 
 ### New Files
-- `src/epydemics/data/frequency_handlers.py` (300-400 lines)
+- `src/dynasir/data/frequency_handlers.py` (300-400 lines)
 
 ### Modified Files
-- `src/epydemics/core/constants.py` - Add frequency config
-- `src/epydemics/data/container.py` - Add frequency parameter
-- `src/epydemics/data/preprocessing.py` - Conditional reindexing
-- `src/epydemics/data/features.py` - Use handler's recovery lag
-- `src/epydemics/models/sird.py` - Pass frequency to components
-- `src/epydemics/models/forecasting/var.py` - Frequency-aware lag selection
-- `src/epydemics/utils/transformations.py` - Frequency-aware calculations (if needed)
+- `src/dynasir/core/constants.py` - Add frequency config
+- `src/dynasir/data/container.py` - Add frequency parameter
+- `src/dynasir/data/preprocessing.py` - Conditional reindexing
+- `src/dynasir/data/features.py` - Use handler's recovery lag
+- `src/dynasir/models/sird.py` - Pass frequency to components
+- `src/dynasir/models/forecasting/var.py` - Frequency-aware lag selection
+- `src/dynasir/utils/transformations.py` - Frequency-aware calculations (if needed)
 
 ### Test Files
 - `tests/unit/data/test_frequency_handlers.py` - 40 tests

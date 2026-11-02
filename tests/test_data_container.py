@@ -11,10 +11,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from epydemics.core.exceptions import NotDataFrameError
+from dynasir.core.exceptions import NotDataFrameError
 
 # Import from the new extracted module
-from epydemics.data import DataContainer
+from dynasir.data import DataContainer
 
 
 class TestDataContainerInitialization:
@@ -177,11 +177,11 @@ class TestDataContainerProcessing:
         # Act
         container = DataContainer(sample_owid_data, window=7)
         initial_data = container.data.copy()
-        
+
         # Change window and re-process
         container.window = 14
         container.process()
-        
+
         # Assert
         assert container.data is not None
         # Data should be different due to different smoothing window
@@ -368,7 +368,7 @@ class TestDataContainerIntegration:
         for feature in epidemio_features:
             assert feature in container.data.columns, f"Missing feature: {feature}"
 
-    @patch("epydemics.data.container.logging")
+    @patch("dynasir.data.container.logging")
     def test_datacontainer_logging_behavior(self, mock_logging):
         """Test that DataContainer maintains proper logging behavior."""
         # Arrange

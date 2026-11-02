@@ -1,17 +1,17 @@
-# PyPI Publication Guide for epydemics v0.7.0
+# PyPI Publication Guide for dynasir v0.7.0
 
 ## ✅ Pre-Publication Checklist (COMPLETED)
 
-- [x] Version bumped to 0.7.0 in `pyproject.toml` and `src/epydemics/__init__.py`
+- [x] Version bumped to 0.7.0 in `pyproject.toml` and `src/dynasir/__init__.py`
 - [x] CHANGELOG.md updated with v0.7.0 release notes
 - [x] All 192 tests passing (100% pass rate)
 - [x] Code coverage at 67%
 - [x] All 4 example notebooks validated and working
 - [x] Pull Request #81 created and merged to main
-- [x] GitHub Release v0.7.0 created: https://github.com/julihocc/epydemics/releases/tag/v0.7.0
+- [x] GitHub Release v0.7.0 created: https://github.com/julihocc/dynasir/releases/tag/v0.7.0
 - [x] Distribution packages built:
-  - `dist/epydemics-0.7.0-py3-none-any.whl` (42K)
-  - `dist/epydemics-0.7.0.tar.gz` (46K)
+  - `dist/dynasir-0.7.0-py3-none-any.whl` (42K)
+  - `dist/dynasir-0.7.0.tar.gz` (46K)
 
 ## 📦 Current Build Status
 
@@ -19,8 +19,8 @@ Build completed successfully with the following artifacts:
 ```bash
 $ ls -lh dist/
 total 92K
--rw-rw-rw- 1 codespace codespace 42K Nov 28 05:18 epydemics-0.7.0-py3-none-any.whl
--rw-rw-rw- 1 codespace codespace 46K Nov 28 05:18 epydemics-0.7.0.tar.gz
+-rw-rw-rw- 1 codespace codespace 42K Nov 28 05:18 dynasir-0.7.0-py3-none-any.whl
+-rw-rw-rw- 1 codespace codespace 46K Nov 28 05:18 dynasir-0.7.0.tar.gz
 ```
 
 ## 🔑 PyPI API Token Setup
@@ -30,8 +30,8 @@ total 92K
 1. Visit https://pypi.org/manage/account/token/
 2. Log in with your PyPI account (username: `julihocc` or associated email)
 3. Click "Add API token"
-4. **Token name**: `epydemics-v0.7.0-release`
-5. **Scope**: `Project: epydemics` (if project exists) or `Entire account`
+4. **Token name**: `dynasir-v0.7.0-release`
+5. **Scope**: `Project: dynasir` (if project exists) or `Entire account`
 6. Click "Create token"
 7. **COPY THE TOKEN IMMEDIATELY** - it will only be shown once
    - Format: `pypi-AgEIcHlwaS5vcmc...` (starts with `pypi-`)
@@ -59,7 +59,7 @@ Option C - GitHub Secrets (For GitHub Actions):
 
 **With token environment variable set:**
 ```bash
-cd /workspaces/epydemics
+cd /workspaces/dynasir
 uv publish
 ```
 
@@ -82,7 +82,7 @@ If `uv publish` has issues:
 pip install twine
 
 # Upload to PyPI
-twine upload dist/epydemics-0.7.0* --username __token__ --password "pypi-AgEIcHlwaS5vcmc..."
+twine upload dist/dynasir-0.7.0* --username __token__ --password "pypi-AgEIcHlwaS5vcmc..."
 ```
 
 ### Method 3: Test PyPI First (Safest)
@@ -96,10 +96,10 @@ Recommended for first-time publication:
 uv publish --publish-url https://test.pypi.org/legacy/ --token "pypi-AgEIcHRlc3QucHlwaS5vcmc..."
 
 # Test installation from Test PyPI
-pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ epydemics==0.7.0
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ dynasir==0.7.0
 
 # Verify it works
-python -c "from epydemics import DataContainer, Model; print('Success!')"
+python -c "from dynasir import DataContainer, Model; print('Success!')"
 ```
 
 ## 📋 Step-by-Step Publication Workflow
@@ -108,26 +108,26 @@ python -c "from epydemics import DataContainer, Model; print('Success!')"
 
 ```bash
 # 1. Ensure you're on main branch with latest code
-cd /workspaces/epydemics
+cd /workspaces/dynasir
 git checkout main
 git pull origin main
 
 # 2. Verify version is correct
 grep "version = " pyproject.toml
-grep "__version__" src/epydemics/__init__.py
+grep "__version__" src/dynasir/__init__.py
 
 # 3. Run final tests (already passed)
-pytest --cov=src/epydemics -v
+pytest --cov=src/dynasir -v
 
 # 4. Clean old builds (if any)
-rm -rf dist/ build/ src/epydemics.egg-info/
+rm -rf dist/ build/ src/dynasir.egg-info/
 
 # 5. Build fresh distributions
 uv build
 
 # 6. Verify package contents
-tar -tzf dist/epydemics-0.7.0.tar.gz | head -20
-unzip -l dist/epydemics-0.7.0-py3-none-any.whl | head -20
+tar -tzf dist/dynasir-0.7.0.tar.gz | head -20
+unzip -l dist/dynasir-0.7.0-py3-none-any.whl | head -20
 
 # 7. Set PyPI token (ONE of these methods)
 export UV_PUBLISH_TOKEN="pypi-AgEIcHlwaS5vcmc..."  # Terminal
@@ -142,15 +142,15 @@ uv publish
 
 # 10. Verify publication
 # Wait 1-2 minutes for PyPI to index, then:
-pip install --upgrade epydemics==0.7.0
-python -c "import epydemics; print(epydemics.__version__)"  # Should print: 0.7.0
+pip install --upgrade dynasir==0.7.0
+python -c "import dynasir; print(dynasir.__version__)"  # Should print: 0.7.0
 ```
 
 ## 🔍 Post-Publication Verification
 
 ### 1. Check PyPI Page
 
-Visit https://pypi.org/project/epydemics/0.7.0/ and verify:
+Visit https://pypi.org/project/dynasir/0.7.0/ and verify:
 - Version shows as 0.7.0
 - Release date is correct (Nov 28, 2025)
 - README.md renders correctly
@@ -165,13 +165,13 @@ python -m venv test_env
 source test_env/bin/activate
 
 # Install from PyPI
-pip install epydemics==0.7.0
+pip install dynasir==0.7.0
 
 # Run quick validation
 python -c "
-from epydemics import DataContainer, Model, process_data_from_owid
+from dynasir import DataContainer, Model, process_data_from_owid
 print('Import successful!')
-print('Version:', epydemics.__version__)
+print('Version:', dynasir.__version__)
 "
 
 # Deactivate and cleanup
@@ -183,7 +183,7 @@ rm -rf test_env
 
 ```bash
 python << 'EOF'
-from epydemics import process_data_from_owid, DataContainer, Model
+from dynasir import process_data_from_owid, DataContainer, Model
 
 # Test SIRD mode
 raw = process_data_from_owid(iso_code="OWID_WRL")
@@ -227,7 +227,7 @@ EOF
 After successful publication:
 
 - **Download stats**: Visible after ~1 hour on PyPI stats page
-- **PyPI badge**: `![PyPI version](https://badge.fury.io/py/epydemics.svg)`
+- **PyPI badge**: `![PyPI version](https://badge.fury.io/py/dynasir.svg)`
 - **Package size**: ~42KB wheel, ~46KB source
 - **Supported Python**: 3.9+ (as per pyproject.toml)
 - **License**: MIT
@@ -260,13 +260,13 @@ After publication, announce on:
 
 ### GitHub Discussion/Announcement
 ```markdown
-🎉 epydemics v0.7.0 released!
+🎉 dynasir v0.7.0 released!
 
 Major feature: SIRDV model with vaccination support
 
-Install: `pip install --upgrade epydemics`
-Release notes: https://github.com/julihocc/epydemics/releases/tag/v0.7.0
-PyPI: https://pypi.org/project/epydemics/0.7.0/
+Install: `pip install --upgrade dynasir`
+Release notes: https://github.com/julihocc/dynasir/releases/tag/v0.7.0
+PyPI: https://pypi.org/project/dynasir/0.7.0/
 
 New in this release:
 - V compartment for vaccination tracking
@@ -279,8 +279,8 @@ Check out the new tutorial: examples/notebooks/02_sirdv_vaccination_analysis.ipy
 
 ### Social Media (if applicable)
 ```
-Released epydemics v0.7.0 with SIRDV model support for epidemic forecasting with vaccination campaigns. 192 tests passing, 4 example notebooks included. #Python #DataScience #Epidemiology
-https://github.com/julihocc/epydemics
+Released dynasir v0.7.0 with SIRDV model support for epidemic forecasting with vaccination campaigns. 192 tests passing, 4 example notebooks included. #Python #DataScience #Epidemiology
+https://github.com/julihocc/dynasir
 ```
 
 ## 🎯 Next Steps After Publication
@@ -296,7 +296,7 @@ https://github.com/julihocc/epydemics
 
 If publication issues arise:
 - PyPI support: https://pypi.org/help/
-- GitHub issues: https://github.com/julihocc/epydemics/issues
+- GitHub issues: https://github.com/julihocc/dynasir/issues
 - Documentation: This guide
 
 ---

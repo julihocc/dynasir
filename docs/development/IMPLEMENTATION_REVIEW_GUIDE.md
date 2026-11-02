@@ -20,21 +20,21 @@
 
 #### High Priority - Core Logic Changes
 
-**`src/epydemics/models/sird.py`**
+**`src/dynasir/models/sird.py`**
 - Lines 356-382: Frequency-aware max_lag selection in `fit_model()`
 - Lines 520-545: Frequency-aware aggregation in `aggregate_forecast()`
 - Changes: +47 lines, frequency detection and handler integration
 
-**`src/epydemics/data/frequency_handlers.py`**
+**`src/dynasir/data/frequency_handlers.py`**
 - Lines 113-148: New `BusinessDayFrequencyHandler` class
 - Lines 363-434: Enhanced `detect_frequency_from_index()` with business day support
 - Changes: +217 lines, business day detection and handler
 
-**`src/epydemics/data/container.py`**
+**`src/dynasir/data/container.py`**
 - Line 149: Updated `valid_frequencies` to include 'B'
 - Changes: +30 lines, frequency validation
 
-**`src/epydemics/analysis/seasonality.py`** (NEW FILE)
+**`src/dynasir/analysis/seasonality.py`** (NEW FILE)
 - Complete file: 254 lines
 - `SeasonalPatternDetector` class with frequency-aware detection
 - Adaptive thresholds and ARIMA/Prophet recommendations
@@ -95,7 +95,7 @@
 
 ```bash
 # Run these commands to verify quality
-cd /workspaces/epydemics.worktrees/address-measles-integration
+cd /workspaces/dynasir.worktrees/address-measles-integration
 
 # 1. Run fast tests
 python -m pytest -m "not slow" -q

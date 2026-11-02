@@ -34,8 +34,8 @@ jupyter notebook global_forecasting.ipynb
 ### 2. ✅ R₀ Calculation Methods
 
 **Files Modified:**
-- `src/epydemics/models/sird.py` - Added two new methods
-- `src/epydemics/__init__.py` - Methods are auto-exported via Model class
+- `src/dynasir/models/sird.py` - Added two new methods
+- `src/dynasir/__init__.py` - Methods are auto-exported via Model class
 
 **Methods Added:**
 
@@ -145,12 +145,12 @@ pytest tests/test_model.py::TestModelR0Calculations::test_calculate_R0_correct_f
 ### 4. ✅ Enhanced Visualization Helper Functions
 
 **Files Created:**
-- `src/epydemics/analysis/formatting.py` - New module with 4 helper functions
+- `src/dynasir/analysis/formatting.py` - New module with 4 helper functions
 
 **Files Modified:**
-- `src/epydemics/analysis/__init__.py` - Export formatting functions
-- `src/epydemics/analysis/visualization.py` - Integrated format_time_axis
-- `src/epydemics/__init__.py` - Export at package level
+- `src/dynasir/analysis/__init__.py` - Export formatting functions
+- `src/dynasir/analysis/visualization.py` - Integrated format_time_axis
+- `src/dynasir/__init__.py` - Export at package level
 
 **Functions Added:**
 
@@ -282,7 +282,7 @@ model.forecast_R0() -> pd.DataFrame
 
 **Package-level imports:**
 ```python
-from epydemics import (
+from dynasir import (
     format_time_axis,
     format_subplot_grid,
     add_forecast_highlight,
@@ -389,7 +389,7 @@ With Priority 1 complete, Priority 3 is feasible:
 ### Complete Workflow with New Features
 
 ```python
-import epydemics as ep
+import dynasir as ep
 
 # Set professional style (new!)
 ep.set_professional_style(figure_size=(14, 10), font_size=12)

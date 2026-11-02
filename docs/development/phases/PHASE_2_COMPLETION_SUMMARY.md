@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-Phase 2 successfully delivers **incidence mode** (Issue #114) as a complete, production-ready feature for epydemics v0.9.0. Users can now work directly with incident cases (I) without pre-computing cumulative cases (C), enabling natural workflows for:
+Phase 2 successfully delivers **incidence mode** (Issue #114) as a complete, production-ready feature for dynasir v0.9.0. Users can now work directly with incident cases (I) without pre-computing cumulative cases (C), enabling natural workflows for:
 - **Measles surveillance data** (annual incident cases)
 - **Polio elimination tracking** (incident cases by region)
 - **Outbreak investigations** (daily/weekly incident reporting)
@@ -87,18 +87,18 @@ This preserves:
 
 | File | Change | Impact |
 |------|--------|--------|
-| `src/epydemics/data/features.py` | Added incidence mode feature engineering | 21 tests passing |
-| `src/epydemics/data/container.py` | Added mode parameter + docstrings | Mode property stored |
-| `src/epydemics/models/sird.py` | Added mode inheritance + docstrings | Auto-inherit from DataContainer |
-| `src/epydemics/core/constants.py` | Added MODES constant | 'cumulative', 'incidence' |
+| `src/dynasir/data/features.py` | Added incidence mode feature engineering | 21 tests passing |
+| `src/dynasir/data/container.py` | Added mode parameter + docstrings | Mode property stored |
+| `src/dynasir/models/sird.py` | Added mode inheritance + docstrings | Auto-inherit from DataContainer |
+| `src/dynasir/core/constants.py` | Added MODES constant | 'cumulative', 'incidence' |
 | `tests/unit/data/test_incidence_mode.py` | 27 feature engineering tests | All passing |
 | `tests/unit/models/test_model_mode.py` | 14 model mode tests | All passing |
 | `tests/integration/test_incidence_mode_workflow.py` | 5 integration tests | All passing |
 | `tests/unit/models/test_incidence_backends.py` | 7 backend tests | 3 passing, 4 conditional |
 | `examples/notebooks/07_incidence_mode_measles.ipynb` | Measles tutorial | 25 cells, production example |
 | `docs/USER_GUIDE.md` | Incidence mode section | 165 lines of guidance |
-| `src/epydemics/data/container.py` docstring | Enhanced documentation | Mode parameter details |
-| `src/epydemics/models/sird.py` docstring | Enhanced documentation | Mode & backend examples |
+| `src/dynasir/data/container.py` docstring | Enhanced documentation | Mode parameter details |
+| `src/dynasir/models/sird.py` docstring | Enhanced documentation | Mode & backend examples |
 
 ---
 
@@ -176,7 +176,7 @@ OPTIONAL/SKIPPED (32):
 
 | Item | Status | Evidence |
 |------|--------|----------|
-| Feature implemented | ✅ | Code in `src/epydemics/data/` and `src/epydemics/models/` |
+| Feature implemented | ✅ | Code in `src/dynasir/data/` and `src/dynasir/models/` |
 | Unit tests | ✅ | 27 incidence mode tests + 14 model mode tests all passing |
 | Integration tests | ✅ | 5 integration tests covering full workflows |
 | Backend compatibility | ✅ | VAR, Prophet, ARIMA support validated (3 passing + 4 conditional) |
@@ -195,7 +195,7 @@ OPTIONAL/SKIPPED (32):
 ### Quick Start: Incidence Mode
 
 ```python
-from epydemics import DataContainer, Model
+from dynasir import DataContainer, Model
 
 # Load measles data (I = incident cases)
 measles_df = pd.DataFrame({
@@ -258,11 +258,11 @@ The following items remain for future releases:
 
 ### Modified
 - `docs/USER_GUIDE.md` (added 165-line incidence mode section)
-- `src/epydemics/data/container.py` (enhanced docstrings)
-- `src/epydemics/models/sird.py` (enhanced docstrings)
+- `src/dynasir/data/container.py` (enhanced docstrings)
+- `src/dynasir/models/sird.py` (enhanced docstrings)
 
 ### Previously Created (Phase 1)
-- `src/epydemics/data/features.py` (incidence mode feature engineering)
+- `src/dynasir/data/features.py` (incidence mode feature engineering)
 - `tests/unit/data/test_incidence_mode.py` (27 tests)
 - `tests/unit/models/test_model_mode.py` (14 tests)
 - `tests/integration/test_incidence_mode_workflow.py` (5 integration tests)
@@ -288,7 +288,7 @@ The following items remain for future releases:
 1. **Version bump** (currently v0.6.1-dev in pyproject.toml)
    ```bash
    # Update pyproject.toml version to 0.9.0
-   # Update src/epydemics/__init__.py version to 0.9.0
+   # Update src/dynasir/__init__.py version to 0.9.0
    ```
 
 2. **Merge to main**

@@ -12,7 +12,7 @@
 
 ### Core Classes Audited
 
-#### 1. Model (src/epydemics/models/sird.py)
+#### 1. Model (src/dynasir/models/sird.py)
 Main user-facing API class.
 
 **Public Methods:**
@@ -36,7 +36,7 @@ Main user-facing API class.
 
 **API Status:** ✅ Consistent - modern names without "logit_ratios" prefix
 
-#### 2. BaseModel (src/epydemics/models/base.py)
+#### 2. BaseModel (src/dynasir/models/base.py)
 Abstract base for model interfaces.
 
 **Abstract Methods:**
@@ -55,7 +55,7 @@ Abstract base for model interfaces.
 
 **API Status:** ✅ Consistent interface
 
-#### 3. VARForecaster (src/epydemics/models/forecasting/var.py)
+#### 3. VARForecaster (src/dynasir/models/forecasting/var.py)
 Internal forecasting engine.
 
 **Public Methods:**
@@ -66,7 +66,7 @@ Internal forecasting engine.
 
 **API Status:** ✅ Clean internal API
 
-#### 4. EpidemicSimulation (src/epydemics/models/simulation.py)
+#### 4. EpidemicSimulation (src/dynasir/models/simulation.py)
 Parallel Monte Carlo simulation engine.
 
 **Public Methods:**
@@ -143,10 +143,10 @@ These are acceptable for v0.6.x but should be documented as deprecated.
 
 ### Task 1: Complete Docstrings with Examples
 **Files:**
-- `src/epydemics/models/sird.py`
-- `src/epydemics/models/base.py`
-- `src/epydemics/models/simulation.py`
-- `src/epydemics/models/forecasting/var.py`
+- `src/dynasir/models/sird.py`
+- `src/dynasir/models/base.py`
+- `src/dynasir/models/simulation.py`
+- `src/dynasir/models/forecasting/var.py`
 
 **Template:**
 ```python
@@ -167,7 +167,7 @@ def method_name(self, param: type) -> ReturnType:
         ExceptionType: When it's raised
 
     Example:
-        >>> from epydemics import DataContainer, Model
+        >>> from dynasir import DataContainer, Model
         >>> container = DataContainer(data, window=7)
         >>> model = Model(container, start="2020-03-01", stop="2020-12-31")
         >>> model.method_name(param)
@@ -176,7 +176,7 @@ def method_name(self, param: type) -> ReturnType:
 
 ### Task 2: Enhance Type Hints
 **Files:**
-- `src/epydemics/models/sird.py`
+- `src/dynasir/models/sird.py`
 
 **Changes:**
 ```python
@@ -190,14 +190,14 @@ def fit_model(self, max_lag: int = 10, ic: str = "aic") -> None:
 ### Task 3: Add Test Coverage Measurement
 **Command:**
 ```bash
-pytest --cov=src/epydemics --cov-report=html --cov-report=term
+pytest --cov=src/dynasir --cov-report=html --cov-report=term
 ```
 
 **Target:** 80%+ coverage
 
 ### Task 4: Document Deprecated Methods
 **Files:**
-- `src/epydemics/models/sird.py`
+- `src/dynasir/models/sird.py`
 
 Add deprecation timeline to docstrings.
 

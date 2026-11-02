@@ -3,11 +3,11 @@ requires = ["setuptools>=68.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "epydemics"
-version = "0.9.0"
-description = "Advanced epidemiological modeling and forecasting using discrete SIRD/SIRDV models with time series analysis"
+name = "dynasir"
+version = "1.0.0"
+description = "Hybrid Epidemic Intelligence: A framework for solving the inverse problem in SIRD models using dynamic parameter estimation."
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Juliho David Castillo Colmenares", email = "juliho.colmenares@gmail.com"}
 ]
@@ -16,9 +16,12 @@ maintainers = [
 ]
 keywords = [
     "epidemiology",
-    "modeling", 
+    "inverse-problem",
+    "dynamic-parameters",
+    "SIRD",
+    "data-assimilation",
+    "hybrid-modeling",
     "forecasting",
-    "sird",
     "time-series",
     "var",
     "monte-carlo",
@@ -56,6 +59,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "factor-analyzer>=0.5.1",
     "pytest-cov>=7.0.0",
+    "tabulate>=0.9.0",
 ]
 
 [project.optional-dependencies]
@@ -83,22 +87,23 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/julihocc/epydemics"
-Documentation = "https://github.com/julihocc/epydemics#readme"
-Repository = "https://github.com/julihocc/epydemics.git"
-"Bug Tracker" = "https://github.com/julihocc/epydemics/issues"
-Changelog = "https://github.com/julihocc/epydemics/blob/main/CHANGELOG.md"
+# TODO: Verify repository URLs post-rebrand
+Homepage = "https://github.com/julihocc/dynasir"
+Documentation = "https://github.com/julihocc/dynasir#readme"
+Repository = "https://github.com/julihocc/dynasir.git"
+"Bug Tracker" = "https://github.com/julihocc/dynasir/issues"
+Changelog = "https://github.com/julihocc/dynasir/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["epydemics*"]
+include = ["dynasir*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-epydemics = ["py.typed"]
+dynasir = ["py.typed"]
 
 # ============================================================================
 # Development Tools Configuration
@@ -127,7 +132,7 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source = ["src/epydemics"]
+source = ["src/dynasir"]
 omit = [
     "*/tests/*",
     "*/test_*.py",
@@ -171,7 +176,7 @@ extend-exclude = '''
 profile = "black"
 multi_line_output = 3
 line_length = 88
-known_first_party = ["epydemics"]
+known_first_party = ["dynasir"]
 known_third_party = [
     "numpy",
     "pandas", 

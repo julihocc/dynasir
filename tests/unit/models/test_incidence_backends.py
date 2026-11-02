@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from epydemics import Model
-from epydemics.data import DataContainer
+from dynasir import Model
+from dynasir.data import DataContainer
 
 
 # Helper functions (must be defined before use in decorators)

@@ -2,7 +2,7 @@
 Helper script to download OWID COVID-19 data for offline use.
 
 This script downloads the complete historical COVID-19 data from Our World in Data
-and saves it locally for use with the epydemics package when internet
+and saves it locally for use with the dynasir package when internet
 connectivity is unavailable.
 
 Data source documentation: https://docs.owid.io/projects/covid/en/latest/dataset.html
@@ -29,7 +29,9 @@ def download_owid_data(full_dataset=True):
     if full_dataset:
         # Complete historical dataset - required for time series analysis
         # Using new catalog URL (compact format, smaller file size)
-        url = "https://catalog.ourworldindata.org/garden/covid/latest/compact/compact.csv"
+        url = (
+            "https://catalog.ourworldindata.org/garden/covid/latest/compact/compact.csv"
+        )
         output_path = data_dir / "owid-covid-data.csv"
         print(f"Downloading COMPLETE historical dataset from {url}...")
         print("This file is ~50-70MB (compact format) and should download quickly...")

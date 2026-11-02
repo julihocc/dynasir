@@ -24,7 +24,7 @@ The native multi-frequency support implementation (Phases 4-7) is **complete, te
 
 ### ✅ Phase 4: Frequency-Aware VAR Parameter Defaults
 **Commits**: `f37380b`, `eb763ea`  
-**Files Modified**: `src/epydemics/models/sird.py`  
+**Files Modified**: `src/dynasir/models/sird.py`  
 **Tests Added**: 0 (validated with existing suite)
 
 **Key Changes:**
@@ -50,7 +50,7 @@ if n_obs < (default_max_lag * 6 + 20):
 
 ### ✅ Phase 5: Frequency-Aware Forecast Aggregation
 **Commits**: `f0d9834`  
-**Files Modified**: `src/epydemics/models/sird.py`  
+**Files Modified**: `src/dynasir/models/sird.py`  
 **Tests Added**: 0 (validated with existing temporal aggregation tests)
 
 **Key Changes:**
@@ -74,7 +74,7 @@ if source_modern == target_modern:
 
 ### ✅ Phase 6: Frequency-Aware Seasonal Pattern Detection
 **Commits**: `5e72ce8`  
-**Files Created**: `src/epydemics/analysis/seasonality.py`  
+**Files Created**: `src/dynasir/analysis/seasonality.py`  
 **Tests Added**: 13 (`tests/unit/analysis/test_seasonality.py`)
 
 **Key Changes:**
@@ -109,8 +109,8 @@ threshold = 0.2 if period > 50 else 0.3
 ### ✅ Phase 7: Business Day Frequency Support
 **Commits**: `cc97d6f`, `14bc238`, `48b84f4`, `12561b8`  
 **Files Modified**: 
-- `src/epydemics/data/frequency_handlers.py` (217 lines changed)
-- `src/epydemics/data/container.py` (30 lines changed)  
+- `src/dynasir/data/frequency_handlers.py` (217 lines changed)
+- `src/dynasir/data/container.py` (30 lines changed)  
 **Files Created**: 
 - `tests/unit/data/test_business_day_frequency.py` (136 lines, 12 tests)
 - `MULTI_FREQUENCY_IMPLEMENTATION_COMPLETE.md` (654 lines)
@@ -256,7 +256,7 @@ pytest tests/integration/ -v
 pytest -m "not slow" -q
 
 # Full suite with coverage
-pytest --cov=src/epydemics --cov-report=html
+pytest --cov=src/dynasir --cov-report=html
 
 # Parallel execution
 pytest -n auto

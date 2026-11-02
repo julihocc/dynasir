@@ -18,7 +18,7 @@
 
 ### 2. Version Management ✅
 - [x] Version bumped to 0.7.0 in `pyproject.toml`
-- [x] Version bumped to 0.7.0 in `src/epydemics/__init__.py`
+- [x] Version bumped to 0.7.0 in `src/dynasir/__init__.py`
 - [x] CHANGELOG.md comprehensive update
 - [x] README.md updated with SIRDV examples
 - [x] CLAUDE.md developer guide updated
@@ -29,15 +29,15 @@
 - [x] Pull Request #81 created: "Release v0.7.0: SIRDV Model Implementation"
 - [x] PR #81 merged to `main` branch
 - [x] GitHub Release v0.7.0 created
-  - **URL**: https://github.com/julihocc/epydemics/releases/tag/v0.7.0
+  - **URL**: https://github.com/julihocc/dynasir/releases/tag/v0.7.0
   - **Tag**: v0.7.0
   - **Release Notes**: RELEASE_NOTES_v0.7.0.md (comprehensive)
   - **Status**: Published as latest release
 
 ### 4. Package Building ✅
 - [x] Distribution packages built via `uv build`
-- [x] Wheel package: `dist/epydemics-0.7.0-py3-none-any.whl` (42KB)
-- [x] Source distribution: `dist/epydemics-0.7.0.tar.gz` (46KB)
+- [x] Wheel package: `dist/dynasir-0.7.0-py3-none-any.whl` (42KB)
+- [x] Source distribution: `dist/dynasir-0.7.0.tar.gz` (46KB)
 - [x] Build warnings: Non-critical (license format deprecation)
 
 ### 5. Documentation ✅
@@ -54,7 +54,7 @@ To publish to PyPI, you need a **PyPI API token**:
 
 1. **Create Token**: https://pypi.org/manage/account/token/
    - Login with PyPI account
-   - Create token with scope: "Project: epydemics" or "Entire account"
+   - Create token with scope: "Project: dynasir" or "Entire account"
    - Copy token immediately (format: `pypi-AgEIcHlwaS5vcmc...`)
 
 2. **Set Token**: Choose one method:
@@ -71,14 +71,14 @@ To publish to PyPI, you need a **PyPI API token**:
 
 3. **Publish**: Run publication command:
    ```bash
-   cd /workspaces/epydemics
+   cd /workspaces/dynasir
    uv publish
    ```
 
 4. **Verify**: Check publication successful:
-   - Visit: https://pypi.org/project/epydemics/0.7.0/
-   - Test install: `pip install --upgrade epydemics==0.7.0`
-   - Verify version: `python -c "import epydemics; print(epydemics.__version__)"`
+   - Visit: https://pypi.org/project/dynasir/0.7.0/
+   - Test install: `pip install --upgrade dynasir==0.7.0`
+   - Verify version: `python -c "import dynasir; print(dynasir.__version__)"`
 
 ### Detailed Instructions
 See `PYPI_PUBLICATION_GUIDE.md` for:
@@ -117,15 +117,15 @@ See `PYPI_PUBLICATION_GUIDE.md` for:
 ## 🔗 Important Links
 
 ### GitHub
-- **Repository**: https://github.com/julihocc/epydemics
-- **Release v0.7.0**: https://github.com/julihocc/epydemics/releases/tag/v0.7.0
-- **Pull Request #81**: https://github.com/julihocc/epydemics/pull/81
-- **Issues**: https://github.com/julihocc/epydemics/issues
+- **Repository**: https://github.com/julihocc/dynasir
+- **Release v0.7.0**: https://github.com/julihocc/dynasir/releases/tag/v0.7.0
+- **Pull Request #81**: https://github.com/julihocc/dynasir/pull/81
+- **Issues**: https://github.com/julihocc/dynasir/issues
 
 ### PyPI (After Publication)
-- **Package Page**: https://pypi.org/project/epydemics/
-- **Version 0.7.0**: https://pypi.org/project/epydemics/0.7.0/
-- **Install Command**: `pip install epydemics==0.7.0`
+- **Package Page**: https://pypi.org/project/dynasir/
+- **Version 0.7.0**: https://pypi.org/project/dynasir/0.7.0/
+- **Install Command**: `pip install dynasir==0.7.0`
 
 ### Documentation Files
 - `RELEASE_NOTES_v0.7.0.md` - Release announcement
@@ -141,8 +141,8 @@ See `PYPI_PUBLICATION_GUIDE.md` for:
 
 After PyPI publication is complete:
 
-- [ ] Verify package on PyPI: https://pypi.org/project/epydemics/0.7.0/
-- [ ] Test fresh installation: `pip install epydemics==0.7.0`
+- [ ] Verify package on PyPI: https://pypi.org/project/dynasir/0.7.0/
+- [ ] Test fresh installation: `pip install dynasir==0.7.0`
 - [ ] Verify SIRDV functionality in clean environment
 - [ ] Add PyPI version badge to README.md
 - [ ] Announce release (GitHub discussions, social media)

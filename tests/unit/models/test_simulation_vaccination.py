@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from epydemics.models.simulation import EpidemicSimulation
-from epydemics.core.constants import FORECASTING_LEVELS
+from dynasir.core.constants import FORECASTING_LEVELS
+from dynasir.models.simulation import EpidemicSimulation
 
 
 @pytest.fixture

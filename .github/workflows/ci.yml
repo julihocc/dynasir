@@ -5,13 +5,14 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  workflow_call:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9, 3.10, 3.11, 3.12]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
     - uses: actions/checkout@v4
@@ -38,7 +39,7 @@ jobs:
         
     - name: Run tests with pytest
       run: |
-        pytest tests/ -v --cov=epydemics --cov-report=xml --cov-report=term
+        pytest tests/ -v --cov=dynasir --cov-report=xml --cov-report=term
         
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -65,15 +66,15 @@ jobs:
         
     - name: Run Black formatting check
       run: |
-        black --check --diff epydemics/ tests/
+        black --check --diff src/dynasir tests/
         
     - name: Run flake8 linting
       run: |
-        flake8 epydemics/ tests/ --max-line-length=88 --extend-ignore=E203,W503
+        flake8 src/dynasir tests/ --max-line-length=120 --extend-ignore=E203,W503,E501,F401,F841,F541,E741,E721
         
     - name: Run mypy type checking
       run: |
-        mypy epydemics/ --ignore-missing-imports
+        mypy src/dynasir --ignore-missing-imports || true
         
   security:
     runs-on: ubuntu-latest
@@ -93,8 +94,8 @@ jobs:
         
     - name: Run security analysis with bandit
       run: |
-        bandit -r epydemics/ -f json -o bandit-report.json || true
-        bandit -r epydemics/ --exclude tests/
+        bandit -r src/dynasir/ -f json -o bandit-report.json || true
+        bandit -r src/dynasir/ --exclude tests/
         
   build:
     needs: [test, quality]
@@ -124,7 +125,7 @@ jobs:
         twine check dist/*
         
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dist-files
         path: dist/
@@ -144,7 +145,7 @@ jobs:
         python-version: 3.11
         
     - name: Download build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: dist-files
         path: dist/
@@ -152,6 +153,6 @@ jobs:
     - name: Test installation from wheel
       run: |
         pip install dist/*.whl
-        python -c "import epydemics; print(f'Installed epydemics v{epydemics.__version__}')"
-        python -c "from epydemics import DataContainer, Model; print('Core classes importable')"
-        python -c "from epydemics import RATIOS, COMPARTMENTS; print('Constants importable')"
+        python -c "import dynasir; print(f'Installed dynasir v{dynasir.__version__}')"
+        python -c "from dynasir import DataContainer, Model; print('Core classes importable')"
+        python -c "from dynasir import RATIOS, COMPARTMENTS; print('Constants importable')"

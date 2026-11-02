@@ -219,10 +219,10 @@ The incidence mode feature is fully implemented and tested. The key architectura
 
 ## Files Modified
 
-- `src/epydemics/data/validation.py` - Added incidence validation
-- `src/epydemics/data/features.py` - Dual-mode feature engineering
-- `src/epydemics/data/container.py` - Mode parameter support
-- `src/epydemics/models/sird.py` - Mode inheritance (existing code, no changes)
+- `src/dynasir/data/validation.py` - Added incidence validation
+- `src/dynasir/data/features.py` - Dual-mode feature engineering
+- `src/dynasir/data/container.py` - Mode parameter support
+- `src/dynasir/models/sird.py` - Mode inheritance (existing code, no changes)
 - `tests/unit/data/test_incidence_mode.py` - NEW: 21 comprehensive unit tests
 - `tests/integration/test_incidence_mode_workflow.py` - NEW: 6 E2E integration tests
 

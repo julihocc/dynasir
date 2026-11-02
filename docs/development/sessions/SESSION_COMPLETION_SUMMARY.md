@@ -127,7 +127,7 @@ f9ae0b8 docs: add final test report for Phase 2
 1. **Version bump**
    ```
    pyproject.toml: 0.6.1-dev → 0.9.0
-   src/epydemics/__init__.py: 0.6.1-dev → 0.9.0
+   src/dynasir/__init__.py: 0.6.1-dev → 0.9.0
    ```
 
 2. **Merge to main**

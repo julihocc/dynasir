@@ -1,10 +1,14 @@
-# Epydemics: Forecasting COVID-19 using time series and machine learning
+# DynaSIR: Forecasting COVID-19 using time series and machine learning
 
-**Version 0.9.0** - Native Multi-Frequency (Daily, Business Day, Weekly, Monthly, Annual)
+Note: DynaSIR (formerly epydemics) is the canonical package name going forward.
 
-`epydemics` is a Python library for epidemiological modeling and forecasting. It provides tools for creating, fitting, and evaluating discrete SIRD/SIRDV models with time-dependent parameters. The library is designed to be flexible and extensible, allowing users to easily incorporate their own data and models.
+**Version 1.0.0** - Official dynasir release and publication-ready reporting tools
 
-**📖 New Users?** Start with the **[User Guide](docs/USER_GUIDE.md)** to understand when and how to use epydemics.
+`dynasir` is a Python library for epidemiological modeling and forecasting. It provides tools for creating, fitting, and evaluating discrete SIRD/SIRDV models with time-dependent parameters. The library is designed to be flexible and extensible, allowing users to easily incorporate their own data and models.
+
+**📖 New Users?** Start with the **[User Guide](docs/USER_GUIDE.md)** to understand when and how to use dynasir.
+
+✨ **v1.0.0 Features**: Publication-ready reporting tools with ModelReport class for Markdown, LaTeX, and high-DPI figure export. See [Reporting Guide](docs/REPORTING_GUIDE.md) for complete workflow examples.
 
 ## Features
 
@@ -15,10 +19,11 @@
 -   **Temporal Aggregation** (v0.9.0): Frequency-aware aggregation that skips resampling when source and target frequencies match.
 -   **Business Day Support** (v0.9.0): Dedicated handler for trading-day calendars (252 days/year) with validated lags and recovery windows.
 -   **Data Container**: A convenient class for loading, preprocessing, and storing epidemiological data.
--   **Parallel Simulations**: Multi-core support for faster Monte Carlo simulations (27 scenarios for SIRD, 81 for SIRDV).
+-   **Scenario Simulations**: 27 scenarios for SIRD, 81 for SIRDV, run sequentially by default, with an optional process pool (`n_jobs`).
 -   **Result Caching**: File-based caching to avoid recomputing identical analyses.
 -   **Model Evaluation**: Tools for evaluating model performance with MAE, MSE, RMSE, MAPE, SMAPE metrics.
 -   **Visualization**: Professional plotting functions for results and forecasts.
+-   **Reporting Tools** (v0.11.1): Publication-ready report generation with Markdown, LaTeX, and high-DPI figure exports. See `ModelReport` class and [examples/notebooks/07_reporting_and_publication.ipynb](examples/notebooks/07_reporting_and_publication.ipynb).
 
 > **✅ Native Multi-Frequency**: v0.9.0 processes annual/monthly/weekly/business-day data without artificial daily reindexing. See [User Guide](docs/USER_GUIDE.md#annual-surveillance-data-workaround) for frequency guidance.
 
@@ -43,47 +48,82 @@ The SIRDV model extends the classical SIRD model by incorporating vaccination:
 - Automatic detection from vaccination data
 - 81 simulation scenarios (3⁴ confidence levels)
 - Conservation law: N = S + I + R + D + V
-- Parallel execution recommended for performance
+- Sequential simulation by default; the 81 scenarios take well under a second
+
+## Quick Start: Reporting
+
+Generate publication-ready reports with one API:
+
+```python
+from dynasir import DataContainer, Model
+from dynasir.analysis import ModelReport
+
+# Fit model (see Tutorial for full workflow)
+container = DataContainer(data, mode='incidence')
+model = Model(container)
+model.create_model()
+model.fit_model(max_lag=3)
+model.forecast(steps=10)
+model.run_simulations()
+model.generate_result()
+
+# Generate comprehensive report
+report = ModelReport(model.results, testing_data=test_data)
+report.export_markdown("report.md", include_figure=True)
+report.export_latex_table("table.tex", "summary")
+fig = report.plot_forecast_panel(dpi=600, save_path="forecast.png")
+```
+
+**See:** [Reporting Guide](docs/REPORTING_GUIDE.md) | [Notebook Example](examples/notebooks/07_reporting_and_publication.ipynb) | [Script Example](examples/reporting_example.py)
 
 ## Getting Started
 
-To get started with `epydemics`, we recommend following the tutorial in [TUTORIAL.md](TUTORIAL.md).
+To get started with `dynasir`, we recommend following the tutorial in [TUTORIAL.md](docs/tutorials/TUTORIAL.md).
 
 ## Installation
 
-You can install `epydemics` from PyPI:
+You can install `dynasir` from PyPI:
 
 ```bash
-pip install epydemics
+pip install dynasir
 ```
 
 To install the latest development version, you can clone this repository and install it in editable mode:
 
 ```bash
-git clone https://github.com/julihocc/epydemics.git
-cd epydemics
+git clone https://github.com/julihocc/dynasir.git
+cd dynasir
 pip install -e .
 ```
 
 ## Documentation
 
 **User Documentation**:
--   **[User Guide](docs/USER_GUIDE.md)**: Complete guide on when to use epydemics, data preparation, and frequency handling
--   **[Tutorial](TUTORIAL.md)**: Step-by-step guide for COVID-19 forecasting
--   **[CHANGELOG.md](CHANGELOG.md)**: Version history and detailed changes
+-   **[User Guide](docs/USER_GUIDE.md)**: Complete guide on when to use dynasir, data preparation, and frequency handling
+-   **[Tutorial](docs/tutorials/TUTORIAL.md)**: Step-by-step guide for COVID-19 forecasting
+-   **[CHANGELOG.md](docs/CHANGELOG.md)**: Version history and detailed changes
+-   **[Quick Reference](docs/QUICK_REFERENCE.md)**: Quick lookup for common workflows
 
 **Developer Documentation**:
--   **[Architecture](ARCHITECTURE.md)**: High-level architecture overview
--   **[Contributing](CONTRIBUTING.md)**: Contribution guidelines and workflow
--   **[CLAUDE.md](CLAUDE.md)**: Developer guide for AI assistants
+-   **[Architecture](docs/architecture/ARCHITECTURE.md)**: High-level architecture overview
+-   **[Contributing](docs/CONTRIBUTING.md)**: Contribution guidelines and workflow
+-   **[CLAUDE.md](docs/architecture/CLAUDE.md)**: Developer guide for AI assistants
 -   **[Documentation Index](docs/INDEX.md)**: Complete documentation organization and navigation
 
 **Release Documentation**:
--   **[v0.9.0 Release Notes](docs/releases/RELEASE_NOTES_v0.9.0.md)**: Latest release details
+-   **[v1.0.0 Release Notes](docs/releases/RELEASE_v1.0.0.md)**: Official release with publication-ready reporting
+-   **[v0.11.0 Release Notes](docs/releases/RELEASE_NOTES_v0.11.0.md)**: Comprehensive reporting tools
+-   **[v0.10.0 Release Notes](docs/releases/RELEASE_NOTES_v0.10.0.md)**: Fractional recovery lag fix
+-   **[v0.9.0 Release Notes](docs/releases/RELEASE_NOTES_v0.9.0.md)**: Native multi-frequency support
 -   **[Migration Guide](docs/releases/MIGRATION_GUIDE.md)**: Upgrade from v0.8.0 to v0.9.0
 -   **[PyPI Publication Guide](docs/releases/PYPI_PUBLICATION_GUIDE.md)**: Publishing to PyPI
 
 ## Further work
+
+Recent additions in v0.10.0:
+-   ✅ **Fractional Recovery Lag**: Annual frequency now uses 14/365 years (0.0384) instead of 0, fixing LinAlgError with incidence mode
+-   ✅ **Annual + Incidence Mode**: Production-ready native support for annual surveillance data with incident cases
+-   ✅ **Enhanced Testing**: 10 new tests for fractional lag validation (421/423 tests passing)
 
 Recent additions in v0.9.0:
 -   ✅ **Native Multi-Frequency**: Daily, business day, weekly, monthly, annual handlers; no artificial reindexing

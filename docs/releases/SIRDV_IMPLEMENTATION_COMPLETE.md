@@ -12,7 +12,7 @@ Successfully implemented dynamic SIRD/SIRDV model support with automatic detecti
 ## What Was Implemented
 
 ### 1. Vaccination Support in Feature Engineering
-- **File:** `src/epydemics/data/features.py`
+- **File:** `src/dynasir/data/features.py`
 - **Changes:**
   - Automatic detection of vaccination column (V)
   - Dynamic calculation of vaccination rate (delta = dV/S)
@@ -21,7 +21,7 @@ Successfully implemented dynamic SIRD/SIRDV model support with automatic detecti
   - Proper logging for vaccination detection
 
 ### 2. Dynamic Rate Detection in Model
-- **File:** `src/epydemics/models/sird.py`
+- **File:** `src/dynasir/models/sird.py`
 - **Changes:**
   - Filter available logit ratios from data columns
   - Store `active_logit_ratios` for dynamic handling
@@ -30,7 +30,7 @@ Successfully implemented dynamic SIRD/SIRDV model support with automatic detecti
   - Dynamic compartment loading from cache
 
 ### 3. Flexible VAR Forecasting
-- **File:** `src/epydemics/models/var_forecasting.py`
+- **File:** `src/dynasir/models/var_forecasting.py`
 - **Changes:**
   - Added `active_logit_ratios` parameter to constructor
   - Dynamic forecasting box creation using loop instead of hardcoded indices
@@ -38,7 +38,7 @@ Successfully implemented dynamic SIRD/SIRDV model support with automatic detecti
   - Automatic inverse logit transformation for all active rates
 
 ### 4. Adaptive Simulation Engine
-- **File:** `src/epydemics/models/simulation.py`
+- **File:** `src/dynasir/models/simulation.py`
 - **Changes:**
   - Dynamic compartment detection in `generate_result()`
   - Only process compartments present in simulation data
@@ -98,10 +98,10 @@ pytest tests/unit/data/test_features_vaccination.py -v
 ## Files Modified
 
 ### Source Files (5)
-1. `src/epydemics/data/features.py` - Vaccination detection and rate calculation
-2. `src/epydemics/models/sird.py` - Dynamic rate filtering and caching
-3. `src/epydemics/models/var_forecasting.py` - Flexible forecasting
-4. `src/epydemics/models/simulation.py` - Adaptive result generation
+1. `src/dynasir/data/features.py` - Vaccination detection and rate calculation
+2. `src/dynasir/models/sird.py` - Dynamic rate filtering and caching
+3. `src/dynasir/models/var_forecasting.py` - Flexible forecasting
+4. `src/dynasir/models/simulation.py` - Adaptive result generation
 
 ### Test Files (5)
 1. `tests/models/test_result_caching.py` - Syntax fix
@@ -169,7 +169,7 @@ git log -1 --oneline
 ## Usage Example
 
 ```python
-from epydemics import process_data_from_owid, DataContainer, Model
+from dynasir import process_data_from_owid, DataContainer, Model
 
 # Load data with vaccination (automatically detected)
 raw_data = process_data_from_owid("USA")  # Has vaccination data

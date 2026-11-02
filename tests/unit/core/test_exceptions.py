@@ -8,39 +8,39 @@ of the exceptions module before implementation.
 
 def test_exceptions_module_imports():
     """Test that all exceptions can be imported from core.exceptions."""
-    from epydemics.core.exceptions import (
-        NotDataFrameError,
-        EpydemicsError,
+    from dynasir.core.exceptions import (
         DataValidationError,
         DateRangeError,
+        DynaSIRError,
+        NotDataFrameError,
     )
 
     # Basic import verification
     assert NotDataFrameError is not None
-    assert EpydemicsError is not None
+    assert DynaSIRError is not None
     assert DataValidationError is not None
     assert DateRangeError is not None
 
 
 def test_base_exception_hierarchy():
     """Test that custom exceptions inherit from proper base classes."""
-    from epydemics.core.exceptions import (
-        EpydemicsError,
-        NotDataFrameError,
+    from dynasir.core.exceptions import (
         DataValidationError,
         DateRangeError,
+        DynaSIRError,
+        NotDataFrameError,
     )
 
     # Test inheritance hierarchy
-    assert issubclass(EpydemicsError, Exception)
-    assert issubclass(NotDataFrameError, EpydemicsError)
-    assert issubclass(DataValidationError, EpydemicsError)
-    assert issubclass(DateRangeError, EpydemicsError)
+    assert issubclass(DynaSIRError, Exception)
+    assert issubclass(NotDataFrameError, DynaSIRError)
+    assert issubclass(DataValidationError, DynaSIRError)
+    assert issubclass(DateRangeError, DynaSIRError)
 
 
 def test_not_dataframe_error():
     """Test NotDataFrameError functionality."""
-    from epydemics.core.exceptions import NotDataFrameError
+    from dynasir.core.exceptions import NotDataFrameError
 
     # Test basic functionality
     error = NotDataFrameError("Test message")
@@ -54,7 +54,7 @@ def test_not_dataframe_error():
 
 def test_data_validation_error():
     """Test DataValidationError functionality."""
-    from epydemics.core.exceptions import DataValidationError
+    from dynasir.core.exceptions import DataValidationError
 
     # Test with custom message
     error = DataValidationError("Invalid data format")
@@ -64,7 +64,7 @@ def test_data_validation_error():
 
 def test_date_range_error():
     """Test DateRangeError functionality."""
-    from epydemics.core.exceptions import DateRangeError
+    from dynasir.core.exceptions import DateRangeError
 
     # Test with custom message
     error = DateRangeError("Invalid date range")
@@ -74,7 +74,7 @@ def test_date_range_error():
 
 def test_exception_raising():
     """Test that exceptions can be raised properly."""
-    from epydemics.core.exceptions import NotDataFrameError, DataValidationError
+    from dynasir.core.exceptions import DataValidationError, NotDataFrameError
 
     try:
         raise NotDataFrameError("Test raising")
@@ -91,7 +91,7 @@ def test_exception_raising():
 
 def test_exception_with_context():
     """Test exceptions with additional context information."""
-    from epydemics.core.exceptions import DataValidationError
+    from dynasir.core.exceptions import DataValidationError
 
     # Test exception with context
     try:
@@ -104,49 +104,39 @@ def test_exception_with_context():
         assert "total_deaths" in str(e)
 
 
-def test_backward_compatibility():
-    """Test that exceptions maintain backward compatibility with original module."""
-    # Import from original location (should still work)
-    import epydemics
+def test_top_level_exports():
+    """Test that exceptions are exported at the package top-level."""
+    import dynasir
 
-    # Original exception should exist
-    assert hasattr(epydemics, "NotDataFrameError")
-
-    # Should be the same class from new location
-    from epydemics.core.exceptions import NotDataFrameError
-
-    # Test that both refer to the same exception class
-    original_error = epydemics.NotDataFrameError("test")
-    new_error = NotDataFrameError("test")
-
-    assert type(original_error).__name__ == type(new_error).__name__
-    assert isinstance(original_error, Exception)
-    assert isinstance(new_error, Exception)
+    assert hasattr(dynasir, "DynaSIRError")
+    assert hasattr(dynasir, "NotDataFrameError")
+    assert hasattr(dynasir, "DataValidationError")
+    assert hasattr(dynasir, "DateRangeError")
 
 
 def test_exception_documentation():
     """Test that exceptions have proper documentation."""
-    from epydemics.core.exceptions import (
-        EpydemicsError,
-        NotDataFrameError,
+    from dynasir.core.exceptions import (
         DataValidationError,
         DateRangeError,
+        DynaSIRError,
+        NotDataFrameError,
     )
 
     # Check that all exceptions have docstrings
-    assert EpydemicsError.__doc__ is not None
+    assert DynaSIRError.__doc__ is not None
     assert NotDataFrameError.__doc__ is not None
     assert DataValidationError.__doc__ is not None
     assert DateRangeError.__doc__ is not None
 
     # Check that docstrings are meaningful
-    assert len(EpydemicsError.__doc__.strip()) > 10
+    assert len(DynaSIRError.__doc__.strip()) > 10
     assert len(NotDataFrameError.__doc__.strip()) > 10
 
 
 def test_exception_args_handling():
     """Test that exceptions handle arguments properly."""
-    from epydemics.core.exceptions import NotDataFrameError, DataValidationError
+    from dynasir.core.exceptions import DataValidationError, NotDataFrameError
 
     # Test with single argument
     error1 = NotDataFrameError("Single message")
@@ -163,7 +153,7 @@ def test_exception_args_handling():
 
 def test_exception_chaining():
     """Test exception chaining works properly."""
-    from epydemics.core.exceptions import DataValidationError
+    from dynasir.core.exceptions import DataValidationError
 
     try:
         try:

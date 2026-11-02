@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from epydemics.data.preprocessing import detect_frequency, warn_frequency_mismatch
+from dynasir.data.preprocessing import detect_frequency, warn_frequency_mismatch
 
 
 class TestDetectFrequency:
@@ -142,7 +142,7 @@ class TestFrequencyDetectionIntegration:
 
     def test_reindex_data_detects_and_warns_annual(self, sample_annual_processed_data):
         """Test that reindex_data detects annual frequency and warns."""
-        from epydemics.data.preprocessing import reindex_data
+        from dynasir.data.preprocessing import reindex_data
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -153,15 +153,15 @@ class TestFrequencyDetectionIntegration:
             # Should emit warning
             assert len(w) >= 1
             warning_messages = [str(warning.message) for warning in w]
-            assert any("FREQUENCY MISMATCH" in msg for msg in warning_messages), (
-                f"Expected frequency mismatch warning. Got: {warning_messages}"
-            )
+            assert any(
+                "FREQUENCY MISMATCH" in msg for msg in warning_messages
+            ), f"Expected frequency mismatch warning. Got: {warning_messages}"
 
     def test_reindex_data_no_warning_when_freq_matches(
         self, sample_annual_processed_data
     ):
         """Test that no warning is emitted when frequencies match."""
-        from epydemics.data.preprocessing import reindex_data
+        from dynasir.data.preprocessing import reindex_data
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -171,13 +171,13 @@ class TestFrequencyDetectionIntegration:
 
             # Should NOT emit frequency mismatch warning
             warning_messages = [str(warning.message) for warning in w]
-            assert not any("FREQUENCY MISMATCH" in msg for msg in warning_messages), (
-                f"Unexpected warning: {warning_messages}"
-            )
+            assert not any(
+                "FREQUENCY MISMATCH" in msg for msg in warning_messages
+            ), f"Unexpected warning: {warning_messages}"
 
     def test_reindex_data_warning_can_be_suppressed(self, sample_annual_processed_data):
         """Test that frequency mismatch warning can be suppressed."""
-        from epydemics.data.preprocessing import reindex_data
+        from dynasir.data.preprocessing import reindex_data
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -193,7 +193,7 @@ class TestFrequencyDetectionIntegration:
 
     def test_reindex_data_explicit_freq_parameter(self, sample_processed_data):
         """Test reindex_data with explicit freq parameter."""
-        from epydemics.data.preprocessing import reindex_data
+        from dynasir.data.preprocessing import reindex_data
 
         # Daily data, explicitly request daily
         reindexed = reindex_data(sample_processed_data, freq="D")
@@ -204,7 +204,7 @@ class TestFrequencyDetectionIntegration:
 
     def test_reindex_data_backward_compatibility(self, sample_processed_data):
         """Test that reindex_data maintains backward compatibility."""
-        from epydemics.data.preprocessing import reindex_data
+        from dynasir.data.preprocessing import reindex_data
 
         # Call without new parameters (v0.7.0 style)
         reindexed = reindex_data(sample_processed_data)

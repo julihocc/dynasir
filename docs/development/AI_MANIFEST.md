@@ -1,4 +1,4 @@
-# AI Manifest for Epydemics
+# AI Manifest for DynaSIR
 
 **Version**: 0.5.0
 **Date**: 2025-09-12
@@ -36,7 +36,7 @@
 
 ### Core Components
 ```
-epydemics.py           # Single-file module with DataContainer and Model classes
+dynasir.py           # Single-file module with DataContainer and Model classes
 ├── DataContainer      # Data preprocessing, feature engineering, SIRD calculations
 ├── Model             # VAR modeling, forecasting, simulations
 ├── Constants         # ratios, logit_ratios, compartments, forecasting_levels

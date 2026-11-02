@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from epydemics import Model, DataContainer
-from epydemics.core.config import get_settings
+from dynasir import DataContainer, Model
+from dynasir.core.config import get_settings
 
 
 @pytest.fixture

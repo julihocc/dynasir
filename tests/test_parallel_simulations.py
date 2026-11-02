@@ -6,14 +6,20 @@ engine, ensuring that parallel and sequential executions produce identical resul
 while providing performance improvements.
 """
 
-import pytest
-import pandas as pd
-import numpy as np
-from unittest.mock import patch
+import logging
 import multiprocessing as mp
+from concurrent.futures import Future
+from concurrent.futures.process import BrokenProcessPool
+from unittest.mock import patch
 
-from epydemics import DataContainer, Model
-from epydemics.models.simulation import EpidemicSimulation
+import numpy as np
+import pandas as pd
+import pytest
+
+from dynasir import DataContainer, Model
+from dynasir.core.config import get_settings
+from dynasir.models import simulation as simulation_module
+from dynasir.models.simulation import EpidemicSimulation
 
 
 class TestParallelSimulations:
@@ -191,3 +197,102 @@ class TestParallelSimulations:
         # Should work without n_jobs parameter (uses default)
         model.run_simulations()
         assert model.simulation is not None
+
+
+def _fitted_model(data_container):
+    model = Model(data_container, start="2020-03-10", stop="2020-03-25")
+    model.create_model()
+    model.fit_model(max_lag=2)
+    model.forecast(steps=5)
+    return model
+
+
+def _fake_executor(created_with, error=None):
+    """Stand-in for ProcessPoolExecutor that runs jobs in-process, or fails each job with `error`."""
+
+    class _Executor:
+        def __init__(self, max_workers=None):
+            created_with.append(max_workers)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc_info):
+            return False
+
+        def submit(self, fn, *args, **kwargs):
+            future = Future()
+            if error is None:
+                future.set_result(fn(*args, **kwargs))
+            else:
+                future.set_exception(error)
+            return future
+
+    return _Executor
+
+
+@pytest.fixture
+def clean_settings(monkeypatch):
+    monkeypatch.delenv("PARALLEL_SIMULATIONS", raising=False)
+    monkeypatch.delenv("N_SIMULATION_JOBS", raising=False)
+    get_settings.cache_clear()
+    yield monkeypatch
+    get_settings.cache_clear()
+
+
+class TestExecutionModeDefaults:
+    """Default execution mode and recovery from a broken process pool (issue #160)."""
+
+    def test_default_runs_sequentially_without_process_pool(
+        self, sample_data_container, clean_settings
+    ):
+        created_with = []
+        clean_settings.setattr(
+            simulation_module, "ProcessPoolExecutor", _fake_executor(created_with)
+        )
+        model = _fitted_model(sample_data_container)
+
+        model.run_simulations()
+
+        assert created_with == []
+        assert model.simulation is not None
+
+    def test_parallel_opt_in_via_settings_uses_process_pool(
+        self, sample_data_container, clean_settings
+    ):
+        clean_settings.setenv("PARALLEL_SIMULATIONS", "true")
+        clean_settings.setenv("N_SIMULATION_JOBS", "3")
+        get_settings.cache_clear()
+        created_with = []
+        clean_settings.setattr(
+            simulation_module, "ProcessPoolExecutor", _fake_executor(created_with)
+        )
+        model = _fitted_model(sample_data_container)
+
+        model.run_simulations()
+
+        assert created_with == [3]
+
+    def test_broken_process_pool_falls_back_to_sequential(
+        self, sample_data_container, clean_settings, caplog
+    ):
+        expected = _fitted_model(sample_data_container)
+        expected.run_simulations(n_jobs=1)
+        expected.generate_result()
+
+        clean_settings.setattr(
+            simulation_module,
+            "ProcessPoolExecutor",
+            _fake_executor([], error=BrokenProcessPool("worker died")),
+        )
+        model = _fitted_model(sample_data_container)
+        with caplog.at_level(logging.WARNING):
+            model.run_simulations(n_jobs=2)
+        model.generate_result()
+
+        assert "__main__" in caplog.text
+        assert "n_jobs=1" in caplog.text
+        for compartment in expected.results:
+            pd.testing.assert_frame_equal(
+                model.results[compartment], expected.results[compartment]
+            )

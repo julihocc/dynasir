@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from epydemics.data.frequency_handlers import (
+from dynasir.data.frequency_handlers import (
     BusinessDayFrequencyHandler,
     FrequencyHandlerRegistry,
 )
@@ -105,7 +105,7 @@ class TestBusinessDayIntegration:
 
     def test_business_day_with_container(self):
         """Test business day data with DataContainer."""
-        from epydemics import DataContainer
+        from dynasir import DataContainer
 
         dates = pd.bdate_range("2024-01-01", periods=60, freq="B")
         data = pd.DataFrame(

@@ -13,7 +13,7 @@ Phase 7 completes the native multi-frequency support system by adding business d
 
 ### 1. Business Day Frequency Handler
 
-**File**: `src/epydemics/data/frequency_handlers.py` (lines 113-148)
+**File**: `src/dynasir/data/frequency_handlers.py` (lines 113-148)
 
 ```python
 class BusinessDayFrequencyHandler(FrequencyHandler):
@@ -41,8 +41,8 @@ class BusinessDayFrequencyHandler(FrequencyHandler):
 ### 2. Frequency Detection Enhancement
 
 **Files Modified**:
-- `src/epydemics/data/frequency_handlers.py`: `detect_frequency_from_index()` function
-- `src/epydemics/data/container.py`: Frequency validation list
+- `src/dynasir/data/frequency_handlers.py`: `detect_frequency_from_index()` function
+- `src/dynasir/data/container.py`: Frequency validation list
 
 **Changes**:
 1. Added business day recognition to pandas inferred frequency mapping:
@@ -189,7 +189,7 @@ candidates = [252, 126, 63, 42, 30, 21, 12, 6, 3]  # Harmonics and common patter
 
 ## Files Modified
 
-1. **`src/epydemics/data/frequency_handlers.py`**
+1. **`src/dynasir/data/frequency_handlers.py`**
    - Added `BusinessDayFrequencyHandler` class (36 lines)
    - Updated `FrequencyHandlerRegistry._HANDLERS` (3 new mappings)
    - Enhanced `detect_frequency_from_index()`:
@@ -197,7 +197,7 @@ candidates = [252, 126, 63, 42, 30, 21, 12, 6, 3]  # Harmonics and common patter
      - Updated manual fallback thresholds (6 lines modified)
      - Updated exception handler fallback (6 lines modified)
 
-2. **`src/epydemics/data/container.py`**
+2. **`src/dynasir/data/container.py`**
    - Updated `valid_frequencies` list (added "B")
 
 3. **`tests/unit/data/test_business_day_frequency.py`** (NEW)

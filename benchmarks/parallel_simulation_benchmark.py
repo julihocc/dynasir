@@ -24,7 +24,7 @@ import pandas as pd
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from epydemics import DataContainer, Model
+from dynasir import DataContainer, Model
 
 
 def create_benchmark_data(n_days: int = 100, seed: int = 42) -> pd.DataFrame:

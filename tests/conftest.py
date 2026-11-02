@@ -47,7 +47,7 @@ def sample_processed_data():
 @pytest.fixture
 def sample_data_container(sample_owid_data):
     """DataContainer instance with processed sample data."""
-    from epydemics.data.container import DataContainer
+    from dynasir.data.container import DataContainer
 
     # Process the data similar to process_data_from_owid
     processed_data = sample_owid_data.copy()
@@ -104,7 +104,7 @@ def sample_annual_processed_data():
 @pytest.fixture
 def sample_annual_data_container(sample_annual_owid_data):
     """DataContainer instance with annual sample data."""
-    from epydemics.data.container import DataContainer
+    from dynasir.data.container import DataContainer
 
     # Process the data
     processed_data = sample_annual_owid_data.copy()

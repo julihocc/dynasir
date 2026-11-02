@@ -8,7 +8,7 @@ of the constants module before implementation.
 
 def test_constants_module_imports():
     """Test that all constants can be imported from core.constants."""
-    from epydemics.core.constants import (
+    from dynasir.core.constants import (
         CENTRAL_TENDENCY_METHODS,
         COMPARTMENTS,
         FORECASTING_LEVELS,
@@ -26,7 +26,7 @@ def test_constants_module_imports():
 
 def test_ratios_constants():
     """Test RATIOS constant has correct values and type."""
-    from epydemics.core.constants import RATIOS
+    from dynasir.core.constants import RATIOS
 
     expected = ["alpha", "beta", "gamma", "delta"]
     assert isinstance(RATIOS, list)
@@ -40,7 +40,7 @@ def test_ratios_constants():
 
 def test_logit_ratios_constants():
     """Test LOGIT_RATIOS constant has correct values and type."""
-    from epydemics.core.constants import LOGIT_RATIOS
+    from dynasir.core.constants import LOGIT_RATIOS
 
     expected = ["logit_alpha", "logit_beta", "logit_gamma", "logit_delta"]
     assert isinstance(LOGIT_RATIOS, list)
@@ -54,7 +54,7 @@ def test_logit_ratios_constants():
 
 def test_compartments_constants():
     """Test COMPARTMENTS constant has correct values and type."""
-    from epydemics.core.constants import COMPARTMENTS
+    from dynasir.core.constants import COMPARTMENTS
 
     expected = ["A", "C", "S", "I", "R", "D", "V"]
     assert isinstance(COMPARTMENTS, list)
@@ -68,7 +68,7 @@ def test_compartments_constants():
 
 def test_forecasting_levels_constants():
     """Test FORECASTING_LEVELS constant has correct values and type."""
-    from epydemics.core.constants import FORECASTING_LEVELS
+    from dynasir.core.constants import FORECASTING_LEVELS
 
     expected = ["lower", "point", "upper"]
     assert isinstance(FORECASTING_LEVELS, list)
@@ -79,7 +79,7 @@ def test_forecasting_levels_constants():
 
 def test_central_tendency_methods_constants():
     """Test CENTRAL_TENDENCY_METHODS constant has correct values and type."""
-    from epydemics.core.constants import CENTRAL_TENDENCY_METHODS
+    from dynasir.core.constants import CENTRAL_TENDENCY_METHODS
 
     expected = ["mean", "median", "gmean", "hmean"]
     assert isinstance(CENTRAL_TENDENCY_METHODS, list)
@@ -90,7 +90,7 @@ def test_central_tendency_methods_constants():
 
 def test_constants_immutability():
     """Test that constants are properly typed and documented."""
-    from epydemics.core.constants import (
+    from dynasir.core.constants import (
         CENTRAL_TENDENCY_METHODS,
         COMPARTMENTS,
         FORECASTING_LEVELS,
@@ -113,7 +113,7 @@ def test_constants_immutability():
 
 def test_ratios_correspondence():
     """Test that RATIOS and LOGIT_RATIOS correspond correctly."""
-    from epydemics.core.constants import LOGIT_RATIOS, RATIOS
+    from dynasir.core.constants import LOGIT_RATIOS, RATIOS
 
     # Each logit ratio should correspond to a ratio
     for i, ratio in enumerate(RATIOS):
@@ -123,7 +123,7 @@ def test_ratios_correspondence():
 
 def test_compartment_labels():
     """Test that COMPARTMENT_LABELS has all compartments including V."""
-    from epydemics.core.constants import COMPARTMENT_LABELS, COMPARTMENTS
+    from dynasir.core.constants import COMPARTMENT_LABELS, COMPARTMENTS
 
     # All compartments should have labels
     for compartment in COMPARTMENTS:
@@ -141,18 +141,15 @@ def test_compartment_labels():
 
 def test_backward_compatibility():
     """Test that constants maintain backward compatibility with original module."""
-    # Import from original location (should still work)
-    import epydemics
+    import dynasir
 
-    # These should exist in the original module
-    assert hasattr(epydemics, "RATIOS")
-    assert hasattr(epydemics, "LOGIT_RATIOS")
-    assert hasattr(epydemics, "COMPARTMENTS")
-    assert hasattr(epydemics, "FORECASTING_LEVELS")
-    assert hasattr(epydemics, "CENTRAL_TENDENCY_METHODS")
+    assert hasattr(dynasir, "RATIOS")
+    assert hasattr(dynasir, "LOGIT_RATIOS")
+    assert hasattr(dynasir, "COMPARTMENTS")
+    assert hasattr(dynasir, "FORECASTING_LEVELS")
+    assert hasattr(dynasir, "CENTRAL_TENDENCY_METHODS")
 
-    # Values should match
-    from epydemics.core.constants import (
+    from dynasir.core.constants import (
         CENTRAL_TENDENCY_METHODS,
         COMPARTMENTS,
         FORECASTING_LEVELS,
@@ -160,8 +157,8 @@ def test_backward_compatibility():
         RATIOS,
     )
 
-    assert epydemics.RATIOS == RATIOS
-    assert epydemics.LOGIT_RATIOS == LOGIT_RATIOS
-    assert epydemics.COMPARTMENTS == COMPARTMENTS
-    assert epydemics.FORECASTING_LEVELS == FORECASTING_LEVELS
-    assert epydemics.CENTRAL_TENDENCY_METHODS == CENTRAL_TENDENCY_METHODS
+    assert dynasir.RATIOS == RATIOS
+    assert dynasir.LOGIT_RATIOS == LOGIT_RATIOS
+    assert dynasir.COMPARTMENTS == COMPARTMENTS
+    assert dynasir.FORECASTING_LEVELS == FORECASTING_LEVELS
+    assert dynasir.CENTRAL_TENDENCY_METHODS == CENTRAL_TENDENCY_METHODS

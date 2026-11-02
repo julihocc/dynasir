@@ -4,13 +4,13 @@ This document compares the research notebook implementation with the current mod
 
 ## Executive Summary
 
-The epydemics library has evolved from the original monolithic implementation demonstrated in the Kaggle notebook to a well-structured, modular package (Phase 3). The core methodology remains intact while benefiting from improved code organization, type safety, modern pandas syntax, and comprehensive testing.
+The dynasir library has evolved from the original monolithic implementation demonstrated in the Kaggle notebook to a well-structured, modular package (Phase 3). The core methodology remains intact while benefiting from improved code organization, type safety, modern pandas syntax, and comprehensive testing.
 
 ## Implementation Evolution
 
 ### Original (Notebook): Monolithic Structure
 ```
-epydemics.py (461 lines)
+dynasir.py (461 lines)
 ├── Helper functions (prepare_for_logit_function, logit_function, etc.)
 ├── DataContainer class
 └── Model class
@@ -18,7 +18,7 @@ epydemics.py (461 lines)
 
 ### Current (v0.6.0): Modular Structure
 ```
-src/epydemics/
+src/dynasir/
 ├── core/
 │   ├── constants.py      # Centralized constants
 │   ├── exceptions.py     # Custom exceptions
@@ -45,7 +45,7 @@ src/epydemics/
 | Feature | Notebook Implementation | Current Implementation | Status |
 |---------|------------------------|----------------------|--------|
 | **Core Functionality** |
-| OWID data loading | `process_data_from_owid()` | `epydemics.process_data_from_owid()` | Maintained |
+| OWID data loading | `process_data_from_owid()` | `dynasir.process_data_from_owid()` | Maintained |
 | Data preprocessing | Inside `DataContainer.__init__` | Separate `preprocessing.py` module | Enhanced |
 | Feature engineering | `feature_engineering()` function | `features.py` + `DataContainer` | Modularized |
 | VAR modeling | `Model.create_logit_ratios_model()` | Same + `models/forecasting/var.py` | Enhanced |
@@ -83,7 +83,7 @@ src/epydemics/
 | Code formatting | Manual | black + flake8 | Automated |
 | Pre-commit hooks | None | Configured | Added |
 | **Package Management** |
-| Installation | `pip install epydemics` | Same + optional dependencies | Enhanced |
+| Installation | `pip install dynasir` | Same + optional dependencies | Enhanced |
 | Dependencies | Fixed versions | Version ranges + optional groups | Improved |
 | Build system | setuptools | Modern setuptools with pyproject.toml | Modernized |
 
@@ -229,7 +229,7 @@ The API remains backward compatible:
 
 ```python
 # Notebook code (still works)
-from epydemics import process_data_from_owid, DataContainer, Model
+from dynasir import process_data_from_owid, DataContainer, Model
 
 data = process_data_from_owid(iso_code="OWID_WRL")
 container = DataContainer(data)
@@ -245,10 +245,10 @@ evaluation = model.evaluate_forecast(testing_data)
 **New modular approach (optional):**
 ```python
 # Can now import specific components
-from epydemics.data import DataContainer, validate_data
-from epydemics.models import Model
-from epydemics.analysis import evaluate_forecast, visualize_results
-from epydemics.utils.transformations import prepare_for_logit_function
+from dynasir.data import DataContainer, validate_data
+from dynasir.models import Model
+from dynasir.analysis import evaluate_forecast, visualize_results
+from dynasir.utils.transformations import prepare_for_logit_function
 ```
 
 ## Performance Considerations

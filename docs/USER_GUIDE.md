@@ -1,11 +1,11 @@
-# Epydemics User Guide
+# DynaSIR User Guide
 
-**Version**: 0.9.0-dev  
+**Version**: 0.10.0
 **Last Updated**: December 2025
 
 ## Table of Contents
 
-1. [When to Use Epydemics](#when-to-use-epydemics)
+1. [When to Use DynaSIR](#when-to-use-dynasir)
 2. [When NOT to Use](#when-not-to-use)
 3. [Data Preparation Guide](#data-preparation-guide)
 4. [Working with Different Data Frequencies](#working-with-different-data-frequencies)
@@ -17,9 +17,9 @@
 
 ---
 
-## When to Use Epydemics
+## When to Use DynaSIR
 
-Epydemics is designed for **epidemiological forecasting** using discrete compartmental models (SIRD/SIRDV) combined with VAR time series analysis. It works best for:
+DynaSIR is designed for **epidemiological forecasting** using discrete compartmental models (SIRD/SIRDV) combined with VAR time series analysis. It works best for:
 
 ### Ideal Use Cases
 
@@ -29,7 +29,7 @@ Epydemics is designed for **epidemiological forecasting** using discrete compart
 - **Frequency**: Daily or weekly observations
 - **Example**: OWID COVID-19 data
 ```python
-from epydemics import process_data_from_owid, DataContainer, Model
+from dynasir import process_data_from_owid, DataContainer, Model
 
 # Load daily COVID-19 data
 data = process_data_from_owid(iso_code="USA")
@@ -40,7 +40,7 @@ model = Model(container, start="2020-03-01", stop="2020-12-31")
 model.create_model()
 model.fit_model(max_lag=10)
 model.forecast(steps=30)
-model.run_simulations(n_jobs=None)
+model.run_simulations()
 model.generate_result()
 ```
 
@@ -71,18 +71,18 @@ container = DataContainer(data, window=7)
 
 ## When NOT to Use
 
-Epydemics may not be suitable for:
+DynaSIR may not be suitable for:
 
 ### ❌ Very Sparse Data
 - **Limitation**: < 20 time points
 - **Reason**: Insufficient data for VAR model estimation
 - **Alternative**: Consider simpler statistical models or SIR-only approaches
 
-### ❌ Native Annual Data (v0.8.0)
-- **Limitation**: Annual surveillance data (e.g., measles 1980-2020)
-- **Reason**: System reindexes annual to daily via forward-fill, creating artificial patterns
-- **Workaround**: Use Phase 1 temporal aggregation (see below)
-- **Future**: Native annual support planned for v0.9.0
+### ✅ Annual Data (v0.10.0+)
+- **Status**: Fully supported with fractional recovery lag fix
+- **How**: Annual frequency uses 14/365 years (0.0384) instead of integer 0
+- **Works with**: Both cumulative and incidence modes
+- **Example**: Measles annual surveillance (1980-2024) now production-ready
 
 ### ❌ Non-Infectious Diseases
 - **Limitation**: Diseases without transmission dynamics
@@ -100,7 +100,7 @@ Epydemics may not be suitable for:
 
 ### Required Data Format
 
-Epydemics expects a pandas DataFrame with:
+DynaSIR expects a pandas DataFrame with:
 
 ```python
 import pandas as pd
@@ -151,8 +151,8 @@ container = DataContainer(data, window=1)  # window=1 for pre-cumulated data
 |-----------|------|--------|-------|
 | Daily | `D` | ✅ Native | Preferred, most tested |
 | Weekly | `W` | ✅ Native | Works well, set `window=1` |
-| Monthly | `M` | ⚠️ Workaround | Use aggregation after forecast |
-| Annual | `Y` | ⚠️ Workaround | Phase 1 solution (see below) |
+| Monthly | `M` | ✅ Native | Recovery lag = 14/30 months (0.47) |
+| Annual | `Y` | ✅ Native | Recovery lag = 14/365 years (0.0384) - v0.10.0+ |
 
 ---
 
@@ -193,7 +193,7 @@ model = Model(container, start="2020-01", stop="2021-12")
 model.create_model()
 model.fit_model(max_lag=3)
 model.forecast(steps=365)  # 1 year
-model.run_simulations(n_jobs=None)
+model.run_simulations()
 model.generate_result()
 
 # Aggregate back to monthly
@@ -207,96 +207,73 @@ monthly_forecast = model.aggregate_forecast(
 
 ---
 
-## Annual Surveillance Data Workaround
+## Annual Surveillance Data
 
-**⚠️ Important**: This is a Phase 1 workaround. Native annual support coming in v0.9.0.
+**✅ v0.10.0**: Native annual frequency now fully supported with fractional recovery lag fix.
 
-### The Challenge
+### What Changed in v0.10.0
 
-Annual surveillance data (e.g., measles 1980-2020) presents unique challenges:
-- Only 40 data points for 40 years
-- Data is reindexed to daily (365 × 40 = 14,600 points)
-- Forward-fill creates artificial patterns
+The critical fix enables annual frequency with incidence mode:
+- **Recovery lag**: Changed from integer 0 to float 0.0384 (14 days / 365 days)
+- **Result**: VAR models can now fit without LinAlgError
+- **Compatibility**: 100% backward compatible with existing code
 
-### Recommended Workflow (v0.8.0)
+### Recommended Workflow (v0.10.0+)
 
 ```python
 import pandas as pd
 import numpy as np
-import warnings
-from epydemics import DataContainer, Model
+from dynasir import DataContainer, Model
 
-# 1. Load annual measles data
+# 1. Load annual measles data (incidence mode)
 annual_data = pd.DataFrame({
-    "C": np.cumsum([200, 180, 150, ...]),  # Cumulative cases
-    "D": np.cumsum([5, 4, 3, ...]),        # Cumulative deaths
-    "N": [330000000] * 40,                  # Population
+    "I": [220, 55, 667, 164, 81, 34, 12, 0, 0, 4, ...],  # Incident cases per year
+    "D": np.cumsum([5, 4, 3, 2, 1, ...]),                 # Cumulative deaths
+    "N": [330000000] * 40,                                # Population
 }, index=pd.date_range("1980", periods=40, freq="YE"))  # Year-end
 
-# 2. Suppress frequency warning (we understand the limitation)
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", message=".*FREQUENCY MISMATCH.*")
-    container = DataContainer(annual_data, window=1)
+# 2. Create container with incidence mode (v0.10.0+)
+container = DataContainer(annual_data, mode='incidence', window=3)
 
-# 3. Create model and forecast (internally daily)
-model = Model(container, start="1982", stop="2010")
+# 3. Create model and forecast - works natively with annual frequency!
+model = Model(container, start="1990", stop="2015")
 model.create_model()
-model.fit_model(max_lag=3)
-model.forecast(steps=365 * 10)  # 10 years in days
+model.fit_model(max_lag=3)  # Annual lags (3 years back)
+model.forecast(steps=5)     # 5 years ahead
 model.run_simulations(n_jobs=1)
 model.generate_result()
 
-# 4. Aggregate daily forecasts back to annual
-annual_forecast = model.aggregate_forecast(
-    "C",                      # Compartment
-    target_frequency="Y",     # Annual
-    aggregate_func="last",    # End-of-year value
-    methods=["mean", "median"]
-)
-
-print(annual_forecast.head())
+# 4. Results are already in annual frequency - no aggregation needed!
+print(model.results['I'])  # Incident cases forecast
 #             mean     median  lower|lower|lower  ...
-# 2010-12-31  1234.5   1200.3  1100.2            ...
-# 2011-12-31  1456.7   1420.1  1300.4            ...
+# 2016-12-31  89.3     85.2    45.1              ...
+# 2017-12-31  103.7    98.4    52.3              ...
 ```
 
-### Aggregation Strategies
+### Key Improvements in v0.10.0
 
+**1. Fractional Recovery Lag**
 ```python
-# Different ways to aggregate annual data
-
-# Total new cases per year (sum daily increments)
-annual_totals = model.aggregate_forecast("C", target_frequency="Y", aggregate_func="sum")
-
-# Average daily cases throughout year
-annual_average = model.aggregate_forecast("C", target_frequency="Y", aggregate_func="mean")
-
-# End-of-year cumulative total
-annual_cumulative = model.aggregate_forecast("C", target_frequency="Y", aggregate_func="last")
-
-# Peak cases during year
-annual_peak = model.aggregate_forecast("C", target_frequency="Y", aggregate_func="max")
+# Annual frequency: recovery_lag = 14/365 = 0.0384 years (not 0!)
+# Monthly frequency: recovery_lag = 14/30 = 0.47 months (not 0!)
 ```
 
-### Understanding the Warning
-
-When you load annual data, you'll see:
-
-```
-⚠️ FREQUENCY MISMATCH WARNING
-Source data frequency: annual (Y)
-Target frequency: daily (D)
-
-Reindexing annual data to daily creates 13,516 rows via forward-fill,
-which may produce meaningless rate calculations and forecasts.
-
-Recommended actions:
-1. Use native frequency support (v0.9.0+): frequency='Y'
-2. Use temporal aggregation to convert forecasts back to annual
-3. See documentation for annual surveillance data best practices
+**2. No More LinAlgError**
+```python
+# v0.9.x: Annual + incidence → constant beta → LinAlgError
+# v0.10.0: Annual + incidence → variable beta → VAR fits successfully ✅
 ```
 
-**This is expected** for Phase 1. Use temporal aggregation to work around it.
+**3. Production-Ready Workflow**
+```python
+# Measles surveillance example
+container = DataContainer(measles_data, mode='incidence', window=3)
+model = Model(container)  # Native annual frequency support
+model.create_model()
+model.fit_model(max_lag=3)  # 3-year lags
+model.forecast(steps=5)     # 5-year forecast
+# No reindexing, no aggregation needed!
+```
 
 ---
 
@@ -321,25 +298,25 @@ Recommended actions:
 - Start with `max_lag=10` for initial exploration
 - Use AIC for lag selection: `model.fit_model(max_lag=10, ic="aic")`
 - Forecast reasonable horizons (30-90 days for daily data)
-- Use parallel simulations: `n_jobs=None` (auto-detect CPUs)
+- Keep the default sequential simulations; parallel workers rarely pay off (see Slow Simulation Performance)
 
 ❌ **DON'T:**
 - Over-forecast (> 6 months ahead gets unreliable)
 - Use too many lags (max_lag > data points / 3)
 - Run simulations sequentially on multi-core systems
 
-### 3. Annual Data (v0.8.0)
+### 3. Annual Data (v0.10.0+)
 
 ✅ **DO:**
-- Use `window=1` (no smoothing)
-- Suppress frequency warnings if you understand limitations
-- Always aggregate forecasts back to annual
-- Test with smaller date ranges first
+- Use `mode='incidence'` for incident cases (e.g., measles)
+- Use `window=3` for smoothing annual data (3-year moving average)
+- Set reasonable `max_lag` for annual frequency (2-4 years)
+- Verify fractional recovery lag is applied correctly
 
 ❌ **DON'T:**
-- Trust daily-resolution results directly
-- Use for high-stakes decisions without validation
-- Ignore the limitations documented here
+- Mix annual and daily data without understanding frequency handling
+- Use very long forecast horizons (>10 years becomes unreliable)
+- Ignore validation of annual forecasts against historical patterns
 
 ---
 
@@ -376,17 +353,41 @@ model = Model(container, start="2020-01-01", stop="2021-12-31")
 
 ### Slow Simulation Performance
 
-**Solution**: Enable parallel execution
+Simulations run sequentially by default. Each scenario (27 for SIRD, 81 for
+SIRDV) takes milliseconds, so starting worker processes usually costs more than
+it saves. On a 12-core Windows machine, 60-day forecasts took about 0.02 s (SIRD)
+and 0.05-0.08 s (SIRDV) sequentially, against about 5 s with one worker per CPU.
+Benchmark before switching parallel execution on.
+
 ```python
-# Auto-detect CPUs (4-7x speedup on multi-core)
-model.run_simulations(n_jobs=None)
-
-# Or specify cores
-model.run_simulations(n_jobs=4)
-
-# Sequential (slow, for debugging)
-model.run_simulations(n_jobs=1)
+model.run_simulations()          # Default: sequential
+model.run_simulations(n_jobs=4)  # Process pool with 4 workers
 ```
+
+To make a process pool the default, set `PARALLEL_SIMULATIONS=true` (and
+optionally `N_SIMULATION_JOBS`) in the environment or a `.env` file.
+
+On Windows and macOS, worker processes are started with `spawn` and re-import
+the calling script. Scripts that request parallel execution must put the code
+that runs simulations behind a `__main__` guard; otherwise each worker re-runs
+the script's top-level code and fails. If the pool breaks, DynaSIR logs a
+warning and reruns the simulations sequentially. In notebooks and interactive
+sessions, keep the sequential default.
+
+```python
+def main():
+    model.run_simulations(n_jobs=4)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+For short annual incidence series, forecasts may have a flat median or rapidly
+widening scenario ranges. DynaSIR does not have a validated universal minimum
+sample size for annual forecasting; use annual-data results as uncertain
+scenarios rather than precise outbreak predictions. A flat median infected
+forecast is logged as a warning when the training data varied.
 
 ---
 
@@ -426,7 +427,7 @@ model.run_simulations(n_jobs=1)
 
 ```python
 import pandas as pd
-from epydemics import DataContainer, Model
+from dynasir import DataContainer, Model
 
 # Example: Mexico measles (annual incident cases)
 dates = pd.date_range('2010', periods=15, freq='YE')
@@ -498,12 +499,13 @@ print("C monotonic:", all(container.data['C'].diff() >= 0))
 
 ---
 
-## Looking Ahead: v0.10.0+
+## Looking Ahead: v0.11.0+
 
 Future enhancements may include:
-- Custom frequency parameters
-- Frequency-specific rate calculations
-- Native annual/monthly model fitting
+- Complete visualization test suite (423/423 passing)
+- Real-world measles data validation with published datasets
+- Importation modeling for eliminated diseases
+- Advanced probabilistic forecasting workflows
 
 ---
 
@@ -512,7 +514,7 @@ Future enhancements may include:
 - **Developer Documentation**: See `CLAUDE.md` for internal architecture
 - **API Reference**: See `docs/API_AUDIT.md`
 - **Examples**: Check `examples/notebooks/` for complete workflows
-- **Issues**: Report problems at https://github.com/julihocc/epydemics/issues
+- **Issues**: Report problems at https://github.com/julihocc/dynasir/issues
 
 ---
 

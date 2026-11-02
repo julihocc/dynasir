@@ -48,7 +48,7 @@ python download_data.py --latest
 
 ### Required Columns
 
-The epydemics package expects these columns:
+The dynasir package expects these columns:
 - `iso_code`: Country/region identifier
 - `date`: Date in YYYY-MM-DD format
 - `total_cases`: Cumulative confirmed cases

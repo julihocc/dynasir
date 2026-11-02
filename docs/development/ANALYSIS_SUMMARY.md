@@ -2,11 +2,11 @@
 
 **Date:** 2025-11-25
 **Notebook Analyzed:** K:\global\global.worktrees\ssrn\report.ipynb
-**Current Codebase:** epydemics v0.6.0-dev (Phase 3)
+**Current Codebase:** dynasir v0.6.0-dev (Phase 3)
 
 ## Overview
 
-This analysis compared your research notebook "Adaptive Epidemic Forecasting Using Time Series Analysis and Machine Learning" with the current modular implementation of the epydemics library. The goal was to ensure feature parity, identify improvements, and create actionable recommendations.
+This analysis compared your research notebook "Adaptive Epidemic Forecasting Using Time Series Analysis and Machine Learning" with the current modular implementation of the dynasir library. The goal was to ensure feature parity, identify improvements, and create actionable recommendations.
 
 ## What Was Delivered
 
@@ -198,7 +198,7 @@ All proposed improvements maintain 100% backward compatibility:
 
 ## Conclusion
 
-The epydemics library successfully implements the research methodology while significantly improving code quality and maintainability. The notebook demonstrates superior visualizations and use cases that should be preserved as examples.
+The dynasir library successfully implements the research methodology while significantly improving code quality and maintainability. The notebook demonstrates superior visualizations and use cases that should be preserved as examples.
 
 The roadmap provides a clear path to integrate the best aspects of both artifacts:
 - Notebook's visualization and analysis techniques

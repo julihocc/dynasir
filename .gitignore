@@ -158,9 +158,14 @@ cython_debug/
 epydemics-tutorial/
 epydemics_global_model/
 
-# Large data files handled by Git LFS (see .gitattributes)
-# Download via scripts: python examples/download_data.py
+# OWID measles data now tracked with Git LFS (1.1 MB total)
+# See .gitattributes for LFS configuration
+# Timestamped duplicates can be gitignored if regenerated
+examples/data/owid/*_2025*.csv
 
 .vscode/
 nul
 .history/
+
+# Snyk Security Extension - AI Rules (auto-generated)
+.github/instructions/snyk_rules.instructions.md

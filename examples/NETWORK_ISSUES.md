@@ -20,7 +20,7 @@ This error indicates that your system cannot resolve the domain name or connect 
 
 2. **Save the file** to this location:
    ```
-   k:\epydemics\epydemics.worktrees\dashboards\examples\data\owid-covid-data.csv
+   k:\dynasir\dynasir.worktrees\dashboards\examples\data\owid-covid-data.csv
    ```
 
 3. **Restart the notebook** and run all cells again.
@@ -32,7 +32,7 @@ The notebook will automatically detect and use the local data file.
 When you have internet connectivity:
 
 ```powershell
-cd k:\epydemics\epydemics.worktrees\dashboards\examples
+cd k:\dynasir\dynasir.worktrees\dashboards\examples
 python download_data.py
 ```
 
@@ -90,7 +90,7 @@ The notebook cell now includes:
 - Instructions for manual data download
 
 ### 2. Improved `process_data_from_owid()` Function
-Updated `src/epydemics/epydemics.py` to:
+Updated `src/dynasir/dynasir.py` to:
 - Catch network errors gracefully
 - Attempt to use local fallback data
 - Provide informative error messages
@@ -126,7 +126,7 @@ If you continue experiencing issues:
 
 1. Check your network connectivity with other websites
 2. Contact your IT department if on a corporate network
-3. Open an issue on GitHub: https://github.com/julihocc/epydemics/issues
+3. Open an issue on GitHub: https://github.com/julihocc/dynasir/issues
 4. Include the full error traceback and output of:
    ```powershell
    Test-NetConnection covid.ourworldindata.org -Port 443

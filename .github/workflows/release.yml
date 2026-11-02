@@ -32,84 +32,51 @@ jobs:
       with:
         python-version: 3.11
         
-    - name: Install build dependencies
+    - name: Determine version and tag
+      id: version
       run: |
-        python -m pip install --upgrade pip
-        pip install build twine
-        
-    - name: Build package
-      run: |
-        python -m build
-        
-    - name: Generate changelog
-      id: changelog
-      run: |
-        # Simple changelog generation from git commits
         if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
           VERSION="${{ github.event.inputs.version }}"
-          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          TAG="v${VERSION}"
         else
-          VERSION=${GITHUB_REF#refs/tags/v}
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          TAG="${{ github.ref_name }}"
+          VERSION=${TAG#v}
         fi
-        
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "TAG=$TAG" >> $GITHUB_OUTPUT
         
-        if [ -n "$PREV_TAG" ]; then
-          echo "## Changes since $PREV_TAG" > CHANGELOG.md
-          git log --pretty=format:"- %s (%h)" ${PREV_TAG}..HEAD >> CHANGELOG.md
-        else
-          echo "## Initial Release" > CHANGELOG.md
-          echo "First release of epydemics v$VERSION" >> CHANGELOG.md
-        fi
+    - name: Download build artifacts from CI
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-files
+        path: dist/
         
     - name: Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref_name }}
-        release_name: Release ${{ steps.changelog.outputs.VERSION }}
-        body_path: CHANGELOG.md
+        files: dist/*
+        tag_name: ${{ steps.version.outputs.TAG }}
+        name: Release ${{ steps.version.outputs.VERSION }}
         draft: false
-        prerelease: ${{ contains(steps.changelog.outputs.VERSION, 'dev') || contains(steps.changelog.outputs.VERSION, 'alpha') || contains(steps.changelog.outputs.VERSION, 'beta') }}
-        
-    - name: Upload Release Assets
-      uses: actions/upload-release-asset@v1
+        prerelease: ${{ contains(steps.version.outputs.VERSION, 'dev') || contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, 'beta') }}
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/
-        asset_name: epydemics-${{ steps.changelog.outputs.VERSION }}-dist.zip
-        asset_content_type: application/zip
-        
+
   publish-pypi:
-    needs: [test, release]
+    needs: release
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'dev')
-    environment: release
     permissions:
       id-token: write
-      
+
     steps:
-    - uses: actions/checkout@v4
-      
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
+    - uses: actions/download-artifact@v4
       with:
-        python-version: 3.11
-        
-    - name: Install build dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install build
-        
-    - name: Build package
-      run: |
-        python -m build
+        name: dist-files
+        path: dist/
         
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         verbose: true
+        skip-existing: true

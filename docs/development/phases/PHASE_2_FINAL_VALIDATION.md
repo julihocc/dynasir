@@ -113,8 +113,8 @@ Total Tests: 367
 
 ### 2. API Documentation
 - **Files**: 
-  - `src/epydemics/data/container.py` (DataContainer docstring)
-  - `src/epydemics/models/sird.py` (Model docstring)
+  - `src/dynasir/data/container.py` (DataContainer docstring)
+  - `src/dynasir/models/sird.py` (Model docstring)
 - **Additions**:
   - Mode parameter documentation
   - Usage examples for both modes
@@ -247,7 +247,7 @@ assert all(C_forecast.diff().dropna() >= -1e-10)
 ### Quick Start (5 lines)
 
 ```python
-from epydemics import DataContainer, Model
+from dynasir import DataContainer, Model
 
 container = DataContainer(data_frame, mode='incidence')
 model = Model(container)
@@ -289,7 +289,7 @@ model.create_model().fit_model().forecast(steps=30)
 
 ⏳ **Version bump** (2 minutes)
 - Update pyproject.toml to 0.9.0
-- Update src/epydemics/__init__.py to 0.9.0
+- Update src/dynasir/__init__.py to 0.9.0
 
 ⏳ **Git operations** (5 minutes)
 - Merge meales-integration-phase-2 to main

@@ -13,13 +13,13 @@
 - **Size**: ~50-70 MB (compact format)
 - **Content**: Full historical time series data from start of pandemic
 - **Format**: CSV with 1 row per location per date
-- **Use Case**: Required for epydemics package and forecasting models
+- **Use Case**: Required for dynasir package and forecasting models
 - **Column Changes**: Uses `country` column instead of `iso_code`, but also includes `code` column with ISO codes
 
 ### 2. Legacy Dataset (May be deprecated)
 - **OLD URL**: https://covid.ourworldindata.org/data/owid-covid-data.csv
 - **Status**: This URL may no longer be maintained or available
-- **Note**: The epydemics package now uses the new catalog URL by default
+- **Note**: The dynasir package now uses the new catalog URL by default
 - **Alternative Formats** (legacy):
   - XLSX: https://covid.ourworldindata.org/data/owid-covid-data.xlsx
   - JSON: https://covid.ourworldindata.org/data/owid-covid-data.json
@@ -31,7 +31,7 @@
 - **Use Case**: Quick testing, current statistics only
 - **Limitation**: Cannot be used for historical forecasting
 
-## Required Columns for Epydemics
+## Required Columns for DynaSIR
 
 The package expects these columns from OWID:
 - `country` or `code`: Country identifier (use `country="World"` or `iso_code="OWID_WRL"` for global data)
@@ -210,6 +210,6 @@ jupyter notebook global_forecasting.ipynb
 ## Support
 
 - **OWID Issues**: https://github.com/owid/covid-19-data/issues
-- **Epydemics Issues**: https://github.com/julihocc/epydemics/issues
+- **DynaSIR Issues**: https://github.com/julihocc/dynasir/issues
 - **OWID Team**: Cameron Appel, Diana Beltekian, Daniel Gavrilov, Charlie Giattino, Joe Hasell, 
   Bobbie Macdonald, Edouard Mathieu, Esteban Ortiz-Ospina, Hannah Ritchie, Lucas Rodés-Guirao, Max Roser

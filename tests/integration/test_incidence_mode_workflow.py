@@ -5,11 +5,11 @@ Tests the full pipeline from data loading through forecasting and simulation
 for incidence mode data. Uses realistic test fixtures to avoid rate saturation.
 """
 
+import numpy as np
 import pandas as pd
 import pytest
-import numpy as np
 
-from epydemics import DataContainer, Model
+from dynasir import DataContainer, Model
 
 
 class TestIncidenceModeBasicWorkflow:

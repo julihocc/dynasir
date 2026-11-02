@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-Epydemics now supports native multi-frequency data processing for annual, monthly, weekly, and daily surveillance data. The core infrastructure is complete with full backward compatibility. Phases 3-5 involve preprocessing updates and forecasting customizations.
+DynaSIR now supports native multi-frequency data processing for annual, monthly, weekly, and daily surveillance data. The core infrastructure is complete with full backward compatibility. Phases 3-5 involve preprocessing updates and forecasting customizations.
 
 **Key Achievement**: Users can now use `DataContainer(data, frequency='YE')` for annual measles data without artificial reindexing to daily.
 
@@ -284,7 +284,7 @@ Time: 29.58s
 
 ### Basic: Daily Data (Current)
 ```python
-from epydemics import DataContainer, Model
+from dynasir import DataContainer, Model
 
 # COVID-19 daily data
 daily_data = pd.DataFrame({'C': [...], 'D': [...], 'N': [...]})
@@ -324,7 +324,7 @@ model.forecast(steps=3)  # Forecast 3 years
 ## Code Structure
 
 ### New Files
-- `src/epydemics/data/frequency_handlers.py` (500+ lines)
+- `src/dynasir/data/frequency_handlers.py` (500+ lines)
   - FrequencyHandler ABC
   - 4 concrete handlers
   - FrequencyHandlerRegistry
@@ -339,12 +339,12 @@ model.forecast(steps=3)  # Forecast 3 years
 - `NATIVE_MULTI_FREQUENCY_PROGRESS.md` - This file
 
 ### Modified Files
-- `src/epydemics/data/container.py`
+- `src/dynasir/data/container.py`
   - Added frequency parameter
   - Auto-detection logic
   - Handler integration
   
-- `src/epydemics/data/features.py`
+- `src/dynasir/data/features.py`
   - Updated feature_engineering() signature
   - Handler-aware compartment calculation
   - Recovery lag flexibility

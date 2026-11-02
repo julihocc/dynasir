@@ -1,8 +1,8 @@
 # Multi-Backend Time Series Refactoring - Issues Summary
 
 **Project**: v0.8.0 Multi-Backend Support
-**Milestone**: https://github.com/julihocc/epydemics/milestone/4
-**Meta Issue**: https://github.com/julihocc/epydemics/issues/97
+**Milestone**: https://github.com/julihocc/dynasir/milestone/4
+**Meta Issue**: https://github.com/julihocc/dynasir/issues/97
 **Status**: 0/16 complete (16 open)
 **Due Date**: January 27, 2025
 
@@ -10,9 +10,9 @@
 
 ## Quick Links
 
-- 📋 [View All Issues](https://github.com/julihocc/epydemics/issues?q=is%3Aissue+milestone%3A%22v0.8.0+-+Multi-Backend+Support%22)
-- 📊 [Milestone Progress](https://github.com/julihocc/epydemics/milestone/4)
-- 📝 [Meta Issue #97](https://github.com/julihocc/epydemics/issues/97)
+- 📋 [View All Issues](https://github.com/julihocc/dynasir/issues?q=is%3Aissue+milestone%3A%22v0.8.0+-+Multi-Backend+Support%22)
+- 📊 [Milestone Progress](https://github.com/julihocc/dynasir/milestone/4)
+- 📝 [Meta Issue #97](https://github.com/julihocc/dynasir/issues/97)
 - 📖 [Implementation Plan](/home/codespace/.claude/plans/goofy-questing-moore.md)
 - 🔧 [Project Setup Guide](.github/PROJECT_SETUP.md)
 
@@ -26,10 +26,10 @@
 
 | # | Issue | Est. | Priority | Dependencies |
 |---|-------|------|----------|--------------|
-| [#82](https://github.com/julihocc/epydemics/issues/82) | Create BaseForecaster ABC interface | 4-6h | 🔴 Critical | None |
-| [#83](https://github.com/julihocc/epydemics/issues/83) | Create ForecasterRegistry and decorator pattern | 4-6h | 🔴 Critical | #82 |
-| [#84](https://github.com/julihocc/epydemics/issues/84) | Refactor VARForecaster to implement BaseForecaster | 3-4h | 🟠 High | #82, #83 |
-| [#85](https://github.com/julihocc/epydemics/issues/85) | Create ForecastingOrchestrator (backend-agnostic) | 6-8h | 🔴 Critical | #82, #83, #84 |
+| [#82](https://github.com/julihocc/dynasir/issues/82) | Create BaseForecaster ABC interface | 4-6h | 🔴 Critical | None |
+| [#83](https://github.com/julihocc/dynasir/issues/83) | Create ForecasterRegistry and decorator pattern | 4-6h | 🔴 Critical | #82 |
+| [#84](https://github.com/julihocc/dynasir/issues/84) | Refactor VARForecaster to implement BaseForecaster | 3-4h | 🟠 High | #82, #83 |
+| [#85](https://github.com/julihocc/dynasir/issues/85) | Create ForecastingOrchestrator (backend-agnostic) | 6-8h | 🔴 Critical | #82, #83, #84 |
 
 **Key Deliverables**:
 - ✅ Abstract base class for all forecasters
@@ -47,8 +47,8 @@
 
 | # | Issue | Est. | Priority | Dependencies |
 |---|-------|------|----------|--------------|
-| [#86](https://github.com/julihocc/epydemics/issues/86) | Add forecaster parameter to Model class | 4-6h | 🔴 Critical | #85 |
-| [#87](https://github.com/julihocc/epydemics/issues/87) | Add backend-specific configuration to Settings | 2-3h | 🟡 Medium | None |
+| [#86](https://github.com/julihocc/dynasir/issues/86) | Add forecaster parameter to Model class | 4-6h | 🔴 Critical | #85 |
+| [#87](https://github.com/julihocc/dynasir/issues/87) | Add backend-specific configuration to Settings | 2-3h | 🟡 Medium | None |
 
 **Key Deliverables**:
 - ✅ Model accepts `forecaster` parameter
@@ -66,9 +66,9 @@
 
 | # | Issue | Est. | Priority | Dependencies |
 |---|-------|------|----------|--------------|
-| [#88](https://github.com/julihocc/epydemics/issues/88) | Implement ProphetForecaster backend | 8-10h | 🟠 High | #82, #83 |
-| [#89](https://github.com/julihocc/epydemics/issues/89) | Implement ARIMAForecaster backend | 8-10h | 🟠 High | #82, #83 |
-| [#90](https://github.com/julihocc/epydemics/issues/90) | Create LSTMForecaster stub for future implementation | 1-2h | 🟢 Low | #82, #83 |
+| [#88](https://github.com/julihocc/dynasir/issues/88) | Implement ProphetForecaster backend | 8-10h | 🟠 High | #82, #83 |
+| [#89](https://github.com/julihocc/dynasir/issues/89) | Implement ARIMAForecaster backend | 8-10h | 🟠 High | #82, #83 |
+| [#90](https://github.com/julihocc/dynasir/issues/90) | Create LSTMForecaster stub for future implementation | 1-2h | 🟢 Low | #82, #83 |
 
 **Key Deliverables**:
 - ✅ Prophet backend with native confidence intervals
@@ -86,12 +86,12 @@
 
 | # | Issue | Est. | Priority | Dependencies |
 |---|-------|------|----------|--------------|
-| [#91](https://github.com/julihocc/epydemics/issues/91) | Create comprehensive test suite for ForecasterRegistry | 3-4h | 🟡 Medium | #83 |
-| [#92](https://github.com/julihocc/epydemics/issues/92) | Create multi-backend integration tests | 6-8h | 🟡 Medium | #84, #88, #89, #86 |
-| [#93](https://github.com/julihocc/epydemics/issues/93) | Add backward compatibility tests for v0.7.0 code | 4-5h | 🟠 High | #86, #85 |
-| [#94](https://github.com/julihocc/epydemics/issues/94) | Update CLAUDE.md with multi-backend documentation | 3-4h | 🟡 Medium | All Phase 3 |
-| [#95](https://github.com/julihocc/epydemics/issues/95) | Create multi_backend_comparison.py example | 4-5h | 🟢 Low | #88, #89, #86 |
-| [#96](https://github.com/julihocc/epydemics/issues/96) | Update pyproject.toml with optional dependencies | 1-2h | 🟡 Medium | None |
+| [#91](https://github.com/julihocc/dynasir/issues/91) | Create comprehensive test suite for ForecasterRegistry | 3-4h | 🟡 Medium | #83 |
+| [#92](https://github.com/julihocc/dynasir/issues/92) | Create multi-backend integration tests | 6-8h | 🟡 Medium | #84, #88, #89, #86 |
+| [#93](https://github.com/julihocc/dynasir/issues/93) | Add backward compatibility tests for v0.7.0 code | 4-5h | 🟠 High | #86, #85 |
+| [#94](https://github.com/julihocc/dynasir/issues/94) | Update CLAUDE.md with multi-backend documentation | 3-4h | 🟡 Medium | All Phase 3 |
+| [#95](https://github.com/julihocc/dynasir/issues/95) | Create multi_backend_comparison.py example | 4-5h | 🟢 Low | #88, #89, #86 |
+| [#96](https://github.com/julihocc/dynasir/issues/96) | Update pyproject.toml with optional dependencies | 1-2h | 🟡 Medium | None |
 
 **Key Deliverables**:
 - ✅ >90% test coverage for new modules
@@ -184,7 +184,7 @@ graph TD
 
 ```bash
 # Overall milestone progress
-gh api repos/julihocc/epydemics/milestones/4 --jq \
+gh api repos/julihocc/dynasir/milestones/4 --jq \
   '"\(.closed_issues)/\(.open_issues + .closed_issues) issues complete (\(.closed_issues * 100 / (.open_issues + .closed_issues) | floor)%)"'
 
 # Issues by status
@@ -297,7 +297,7 @@ gh pr create --title "feat: Create BaseForecaster ABC (#82)" \
 ### Track Progress
 ```bash
 # Milestone summary
-gh api repos/julihocc/epydemics/milestones/4 \
+gh api repos/julihocc/dynasir/milestones/4 \
   --jq '{title, open: .open_issues, closed: .closed_issues}'
 
 # Issues waiting on you
@@ -315,7 +315,7 @@ gh issue list --milestone "v0.8.0 - Multi-Backend Support" \
 
 - **Implementation Questions**: See `/home/codespace/.claude/plans/goofy-questing-moore.md`
 - **Project Setup**: See `.github/PROJECT_SETUP.md`
-- **General Discussion**: Comment on meta issue [#97](https://github.com/julihocc/epydemics/issues/97)
+- **General Discussion**: Comment on meta issue [#97](https://github.com/julihocc/dynasir/issues/97)
 - **Specific Issue**: Comment on the individual issue
 
 ---

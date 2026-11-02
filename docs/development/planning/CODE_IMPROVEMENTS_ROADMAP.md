@@ -1,6 +1,6 @@
 # Code Improvements Roadmap
 
-Based on analysis of the research notebook, this document outlines specific, actionable code improvements for the epydemics library.
+Based on analysis of the research notebook, this document outlines specific, actionable code improvements for the dynasir library.
 
 ## Priority 1: Critical Enhancements (Implement First)
 
@@ -36,7 +36,7 @@ examples/
 
 **Implementation:**
 ```python
-# In src/epydemics/models/sird.py
+# In src/dynasir/models/sird.py
 
 class Model:
     # ... existing code ...
@@ -114,7 +114,7 @@ def test_forecast_R0(fitted_model):
 
 **Implementation:**
 ```python
-# New file: src/epydemics/analysis/formatting.py
+# New file: src/dynasir/analysis/formatting.py
 
 from datetime import timedelta
 from typing import Literal
@@ -184,7 +184,7 @@ def format_time_axis(
 
 **Update visualization.py to use it:**
 ```python
-# In src/epydemics/analysis/visualization.py
+# In src/dynasir/analysis/visualization.py
 
 from .formatting import format_time_axis
 
@@ -226,7 +226,7 @@ def visualize_results(
 
 **Implementation:**
 ```python
-# In src/epydemics/models/sird.py
+# In src/dynasir/models/sird.py
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Optional
@@ -282,7 +282,7 @@ class Model:
 
 **Configuration:**
 ```python
-# In src/epydemics/core/config.py
+# In src/dynasir/core/config.py
 
 from pydantic_settings import BaseSettings
 
@@ -305,7 +305,7 @@ class Settings(BaseSettings):
 
 **Implementation:**
 ```python
-# New file: src/epydemics/utils/caching.py
+# New file: src/dynasir/utils/caching.py
 
 import hashlib
 import pickle
@@ -348,9 +348,9 @@ def cache_forecast(cache_dir: str = ".epydemics_cache") -> Callable:
     return decorator
 
 
-# In src/epydemics/models/sird.py
+# In src/dynasir/models/sird.py
 
-from epydemics.utils.caching import cache_forecast
+from dynasir.utils.caching import cache_forecast
 
 class Model:
     # ... existing code ...
@@ -389,7 +389,7 @@ class Model:
 
 **Implementation:**
 ```python
-# New file: src/epydemics/models/forecasting/sarimax.py
+# New file: src/dynasir/models/forecasting/sarimax.py
 
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from typing import Optional, Tuple
@@ -448,7 +448,7 @@ class SARIMAXForecaster:
 
 **Integration with Model:**
 ```python
-# In src/epydemics/models/sird.py
+# In src/dynasir/models/sird.py
 
 class Model:
     def __init__(
@@ -467,7 +467,7 @@ class Model:
         if self.forecaster_type == "var":
             self.logit_ratios_model = VAR(self.logit_ratios_values, *args, **kwargs)
         elif self.forecaster_type == "sarimax":
-            from epydemics.models.forecasting.sarimax import SARIMAXForecaster
+            from dynasir.models.forecasting.sarimax import SARIMAXForecaster
             self.logit_ratios_model = SARIMAXForecaster(*args, **kwargs)
         else:
             raise ValueError(f"Unknown forecaster: {self.forecaster_type}")
@@ -484,7 +484,7 @@ class Model:
 
 **Implementation:**
 ```python
-# New file: src/epydemics/comparison.py
+# New file: src/dynasir/comparison.py
 
 from typing import List, Dict
 import pandas as pd
@@ -508,7 +508,7 @@ class RegionalComparison:
 
     def load_data(self, **data_kwargs) -> None:
         """Load data for all regions."""
-        from .epydemics import process_data_from_owid
+        from .dynasir import process_data_from_owid
 
         for iso_code in self.iso_codes:
             data = process_data_from_owid(iso_code=iso_code, **data_kwargs)
@@ -576,7 +576,7 @@ class RegionalComparison:
 ```python
 # In examples/regional_comparison.ipynb
 
-from epydemics.comparison import RegionalComparison
+from dynasir.comparison import RegionalComparison
 
 # Compare North American countries
 comparison = RegionalComparison(["MEX", "USA", "CAN"])

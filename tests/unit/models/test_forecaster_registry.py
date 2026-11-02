@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from epydemics.models.forecasting.base import BaseForecaster
-from epydemics.models.forecasting.registry import (
+from dynasir.models.forecasting.base import BaseForecaster
+from dynasir.models.forecasting.registry import (
     ForecasterRegistry,
     register_forecaster,
 )
@@ -57,7 +57,11 @@ class AnotherDummyForecaster(BaseForecaster):
     def forecast_interval(self, steps: int, **kwargs):
         """Generate forecasts."""
         n_vars = self.data.shape[1] if hasattr(self.data, "shape") else 3
-        return np.zeros((steps, n_vars)), np.ones((steps, n_vars)), np.ones((steps, n_vars)) * 2
+        return (
+            np.zeros((steps, n_vars)),
+            np.ones((steps, n_vars)),
+            np.ones((steps, n_vars)) * 2,
+        )
 
 
 class InvalidForecaster:
@@ -110,9 +114,7 @@ class TestForecasterRegistryRegistration:
     def test_register_with_aliases(self, sample_data):
         """Test registration with aliases."""
         ForecasterRegistry.register(
-            "dummy",
-            DummyForecaster,
-            aliases=["dm", "dummy_backend"]
+            "dummy", DummyForecaster, aliases=["dm", "dummy_backend"]
         )
 
         assert "dummy" in ForecasterRegistry.list_available()
@@ -146,7 +148,9 @@ class TestForecasterRegistryRegistration:
         ForecasterRegistry.register("dummy", DummyForecaster, aliases=["dm"])
 
         with pytest.raises(ValueError, match="Alias 'dm' is already registered"):
-            ForecasterRegistry.register("another", AnotherDummyForecaster, aliases=["dm"])
+            ForecasterRegistry.register(
+                "another", AnotherDummyForecaster, aliases=["dm"]
+            )
 
     def test_register_multiple_backends(self):
         """Test registering multiple backends."""
@@ -263,6 +267,7 @@ class TestForecasterRegistryDecorator:
 
     def test_decorator_registration(self, sample_data):
         """Test registering forecaster using decorator."""
+
         @register_forecaster("decorated")
         class DecoratedForecaster(BaseForecaster):
             @property
@@ -277,7 +282,11 @@ class TestForecasterRegistryDecorator:
 
             def forecast_interval(self, steps: int, **kwargs):
                 n_vars = 3
-                return np.zeros((steps, n_vars)), np.ones((steps, n_vars)), np.ones((steps, n_vars)) * 2
+                return (
+                    np.zeros((steps, n_vars)),
+                    np.ones((steps, n_vars)),
+                    np.ones((steps, n_vars)) * 2,
+                )
 
         assert "decorated" in ForecasterRegistry.list_available()
         assert ForecasterRegistry.get("decorated") is DecoratedForecaster
@@ -288,6 +297,7 @@ class TestForecasterRegistryDecorator:
 
     def test_decorator_with_aliases(self, sample_data):
         """Test decorator with aliases."""
+
         @register_forecaster("decorated", aliases=["dec", "decorated_backend"])
         class DecoratedForecaster(BaseForecaster):
             @property
@@ -302,7 +312,11 @@ class TestForecasterRegistryDecorator:
 
             def forecast_interval(self, steps: int, **kwargs):
                 n_vars = 3
-                return np.zeros((steps, n_vars)), np.ones((steps, n_vars)), np.ones((steps, n_vars)) * 2
+                return (
+                    np.zeros((steps, n_vars)),
+                    np.ones((steps, n_vars)),
+                    np.ones((steps, n_vars)) * 2,
+                )
 
         assert ForecasterRegistry.get("decorated") is DecoratedForecaster
         assert ForecasterRegistry.get("dec") is DecoratedForecaster
@@ -310,6 +324,7 @@ class TestForecasterRegistryDecorator:
 
     def test_decorator_returns_class_unchanged(self, sample_data):
         """Test that decorator returns the class unchanged."""
+
         @register_forecaster("decorated")
         class DecoratedForecaster(BaseForecaster):
             @property
@@ -324,7 +339,11 @@ class TestForecasterRegistryDecorator:
 
             def forecast_interval(self, steps: int, **kwargs):
                 n_vars = 3
-                return np.zeros((steps, n_vars)), np.ones((steps, n_vars)), np.ones((steps, n_vars)) * 2
+                return (
+                    np.zeros((steps, n_vars)),
+                    np.ones((steps, n_vars)),
+                    np.ones((steps, n_vars)) * 2,
+                )
 
         # Class should be fully functional
         forecaster = DecoratedForecaster(sample_data)
@@ -424,9 +443,7 @@ class TestForecasterRegistryEdgeCases:
     def test_multiple_aliases_point_to_same_backend(self):
         """Test multiple aliases correctly resolve to same backend."""
         ForecasterRegistry.register(
-            "dummy",
-            DummyForecaster,
-            aliases=["alias1", "alias2", "alias3"]
+            "dummy", DummyForecaster, aliases=["alias1", "alias2", "alias3"]
         )
 
         assert ForecasterRegistry.get("dummy") is DummyForecaster
