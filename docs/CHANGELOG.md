@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Legacy `dynasir.epydemics.Model` initialises again, and its results no longer fail on the SIRDV rate and compartment (#173).
 - `evaluate_forecast` works with read-only arrays (#173).
 
+### Documentation
+
+- Clarify that annual incidence support does not guarantee forecast skill on
+  short series, document the flat-median warning, and add guidance for
+  validation and importation assumptions (#161).
+
 ## [1.0.0] - 2026-01-13
 
 ### Summary

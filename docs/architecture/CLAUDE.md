@@ -15,7 +15,7 @@ DynaSIR is a Python library for epidemiological modeling and forecasting that co
 **Fractional Recovery Lag Fix**:
 - Annual frequency now uses 14/365 = 0.0384 years instead of 0 (rounded)
 - Fixes LinAlgError when combining annual frequency + incidence mode
-- Native annual + incidence workflows now production-ready
+- Annual + incidence workflows are supported; forecast quality must be validated, especially for short series
 - 421/423 tests passing with 10 new fractional lag validation tests
 
 **Comprehensive Reporting Tools** (NEW):
@@ -603,32 +603,34 @@ annual_result = detector.detect_seasonal_patterns(annual_data, frequency="YE")
 - Annual frequency now uses `recovery_lag = 14/365 = 0.0384` years (fractional lag)
 - Recovery now happens 0.0384 years after infection
 - Rates vary over time → VAR can fit successfully
-- Annual + incidence mode is now production-ready
+- Annual + incidence mode is supported; this does not guarantee predictive skill
 
 **Current Status**:
 - ✅ DataContainer creation (all frequencies)
 - ✅ Feature engineering (fractional lag support)
 - ✅ Model creation and VAR fitting (annual + incidence works)
-- ✅ Forecasting and simulation (fully functional)
+- ✅ Forecasting and simulation (supported; validate forecast skill separately)
 
 **Usage** (v0.10.0+):
 ```python
-# Annual + incidence mode now works!
+# Annual + incidence mode is supported; validate forecast skill separately.
 container = DataContainer(data, mode='incidence', frequency='YE')
 model = Model(container)
-model.fit_model(max_lag=3)  # Success! Rates vary due to fractional lag
+model.fit_model(max_lag=3)  # The fractional lag resolves the former fitting limitation.
 model.forecast(steps=5)
 model.run_simulations()
 ```
 
-**Validation**:
+**Fit diagnostic (not a forecast-skill test)**:
 ```python
 # Verify rates vary over time
 rate_variance = container.data[['alpha', 'beta', 'gamma']].var()
 assert rate_variance.max() > 1e-10, "Rates should vary"
 ```
 
-**Documentation**: See `docs/user-guide/known-limitations.md` for complete details and `RELEASE_NOTES_v0.10.0.md` for the fix.
+For short annual series, a flat median and widening scenario range can still
+make forecasts uninformative. Compare rolling-origin forecasts with simple
+baselines and see `docs/user-guide/known-limitations.md` for current guidance.
 
 ---
 
@@ -781,7 +783,7 @@ assert rate_variance.max() > 1e-10, "Rates should vary"
 **v0.10.0 Test Coverage** (Current):
 - 421/423 tests passing (2 skipped for optional dependencies)
 - +10 new tests for fractional recovery lag validation
-- Annual + incidence mode now fully functional
+- Annual + incidence fitting is supported; validate predictive skill separately
 - Comprehensive reporting tools added
 - Zero regressions - 100% backward compatible
 

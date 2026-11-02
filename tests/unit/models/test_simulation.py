@@ -156,7 +156,7 @@ class TestEpidemicSimulation:
 
     def test_warns_for_flat_median_incidence_forecast(self, caplog):
         """Warn when the median infected forecast is flat despite historical variation."""
-        forecast_index = pd.date_range("2020-01-01", periods=2, freq="D")
+        forecast_index = pd.date_range("2020-12-31", periods=2, freq="YE")
         historical = pd.DataFrame(
             {
                 "A": [100.0, 100.0],
@@ -169,7 +169,7 @@ class TestEpidemicSimulation:
                 "beta": [0.0, 0.0],
                 "gamma": [0.0, 0.0],
             },
-            index=pd.date_range("2019-12-30", periods=2, freq="D"),
+            index=pd.date_range("2018-12-31", periods=2, freq="YE"),
         )
         forecast_rates = {
             rate: pd.DataFrame(

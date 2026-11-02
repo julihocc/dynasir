@@ -1,7 +1,7 @@
 # DynaSIR User Guide
 
-**Version**: 0.10.0
-**Last Updated**: December 2025
+**Version**: 1.0.0
+**Last Updated**: November 2026
 
 ## Table of Contents
 
@@ -10,7 +10,7 @@
 3. [Data Preparation Guide](#data-preparation-guide)
 4. [Working with Different Data Frequencies](#working-with-different-data-frequencies)
 5. [Incidence Mode (v0.9.0+)](#incidence-mode-v090)
-6. [Annual Surveillance Data Workaround](#annual-surveillance-data-workaround)
+6. [Annual Surveillance Data](#annual-surveillance-data)
 7. [Best Practices](#best-practices)
 8. [Troubleshooting](#troubleshooting)
 9. [Additional Resources](#additional-resources)
@@ -79,10 +79,10 @@ DynaSIR may not be suitable for:
 - **Alternative**: Consider simpler statistical models or SIR-only approaches
 
 ### ✅ Annual Data (v0.10.0+)
-- **Status**: Fully supported with fractional recovery lag fix
+- **Status**: Supported, including incidence mode, with a fractional recovery lag
 - **How**: Annual frequency uses 14/365 years (0.0384) instead of integer 0
 - **Works with**: Both cumulative and incidence modes
-- **Example**: Measles annual surveillance (1980-2024) now production-ready
+- **Caution**: Technical support does not guarantee useful forecasts; short annual series can have flat medians and widening scenario ranges.
 
 ### ❌ Non-Infectious Diseases
 - **Limitation**: Diseases without transmission dynamics
@@ -209,13 +209,13 @@ monthly_forecast = model.aggregate_forecast(
 
 ## Annual Surveillance Data
 
-**✅ v0.10.0**: Native annual frequency now fully supported with fractional recovery lag fix.
+**v0.10.0+** supports annual frequency natively, including incidence mode, with a fractional recovery lag. This fixes a model-fitting limitation; it does not establish predictive skill. With only a few dozen annual observations, VAR forecasts may be unstable or uninformative.
 
 ### What Changed in v0.10.0
 
-The critical fix enables annual frequency with incidence mode:
+The recovery lag is fractional rather than rounded to zero:
 - **Recovery lag**: Changed from integer 0 to float 0.0384 (14 days / 365 days)
-- **Result**: VAR models can now fit without LinAlgError
+- **Result**: Annual incidence VAR models can fit without the former constant-rate failure
 - **Compatibility**: 100% backward compatible with existing code
 
 ### Recommended Workflow (v0.10.0+)
@@ -245,35 +245,63 @@ model.generate_result()
 
 # 4. Results are already in annual frequency - no aggregation needed!
 print(model.results['I'])  # Incident cases forecast
-#             mean     median  lower|lower|lower  ...
-# 2016-12-31  89.3     85.2    45.1              ...
-# 2017-12-31  103.7    98.4    52.3              ...
+# Forecast values depend on the input data and model fit.
 ```
 
 ### Key Improvements in v0.10.0
 
 **1. Fractional Recovery Lag**
 ```python
-# Annual frequency: recovery_lag = 14/365 = 0.0384 years (not 0!)
-# Monthly frequency: recovery_lag = 14/30 = 0.47 months (not 0!)
+# Annual frequency: recovery_lag = 14/365 = 0.0384 years
+# Monthly frequency: recovery_lag = 14/30 = 0.47 months
 ```
 
-**2. No More LinAlgError**
+**2. Resolves the former annual-incidence fitting failure**
 ```python
-# v0.9.x: Annual + incidence → constant beta → LinAlgError
-# v0.10.0: Annual + incidence → variable beta → VAR fits successfully ✅
+# v0.9.x: Annual + incidence could produce constant rates and fail VAR fitting.
+# v0.10.0+: Fractional recovery lag removes that specific failure mode.
+# A successful fit does not imply an informative or accurate forecast.
 ```
 
-**3. Production-Ready Workflow**
+**3. Native annual workflow**
 ```python
-# Measles surveillance example
 container = DataContainer(measles_data, mode='incidence', window=3)
-model = Model(container)  # Native annual frequency support
+model = Model(container)
 model.create_model()
-model.fit_model(max_lag=3)  # 3-year lags
-model.forecast(steps=5)     # 5-year forecast
-# No reindexing, no aggregation needed!
+model.fit_model(max_lag=3)
+model.forecast(steps=5)
+# No reindexing or aggregation is needed; validate forecast skill separately.
 ```
+
+### Short Annual Series: Validate Before Interpreting
+
+There is no universal minimum number of annual observations that guarantees a
+useful VAR forecast. A few dozen points can be enough for the model to fit, but
+not enough to estimate stable dynamics; results depend on variation, missingness,
+lag selection, and forecast horizon. A flat median with a widening scenario
+range is a warning of weakly informative output, not evidence that an outbreak
+is unlikely. `generate_result()` logs a warning when the median infected
+forecast is flat despite variation in the historical series.
+
+Before using annual forecasts:
+
+- Compare rolling-origin forecasts with simple baselines (such as persistence
+  and a trailing median) at the same horizons.
+- Inspect the median and scenario spread at each horizon; do not rely on a
+  single fitted forecast or reproduction-number estimate.
+- Report the number of usable annual observations and failed fits. Do not treat
+  a successful VAR fit as validation.
+
+The scenario columns enumerate combinations of rate confidence levels; they
+are not calibrated probability samples. The fraction of scenarios exceeding a
+case threshold can be reported as a scenario share, but must not be described
+as a probability unless separately calibrated against out-of-sample outcomes.
+
+`importation_rate` adds an external force of infection to the model. It is not
+estimated from the case series. Set it using independent importation or travel
+surveillance evidence where available, and otherwise compare explicitly stated
+values as sensitivity scenarios rather than selecting a value to produce a
+desired outbreak forecast.
 
 ---
 
