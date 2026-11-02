@@ -44,6 +44,10 @@ infectious group for the step to t+1, and all of them leave `I` by then:
   weeks long.
 - `results["I"]` is the simulated incidence of each period, comparable with
   the input `I`.
+- Beta does not enter the cohort simulation, so the 27 SIRD scenarios contain
+  9 distinct results (alpha by gamma), each repeated for the three beta
+  levels. Medians and ranges are not affected. `forecast_R0()` returns alpha
+  in every scenario.
 
 The rate in row t describes the step from t to t+1. `Model(stop=...)` rebuilds
 the features from the data up to `stop`, so backtests do not use later
