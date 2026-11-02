@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `alpha_t = A_t * I_(t+1) / (I_t * S_t)`: new cases next period per case, scaled by the susceptible share. It was `1 + I/S` and clipped to a constant. It can exceed 1, so it is forecast as `log_alpha` (no `logit_alpha` column).
   - `gamma_t` is the share of the next cohort that dies (`dD/dC`), and `beta = 1 - gamma` is derived, not forecast (no `logit_beta` column). Its levels mirror gamma's.
   - `R = C - I - D`, and `calculate_R0()` equals alpha, which is close to the growth ratio `I_(t+1)/I_t`: R0 > 1 now precedes rises. With annual counts this is a ratio between successive years, not a per-generation reproduction number.
-  - The simulation reports period incidence in `results["I"]`, comparable with the input `I`.
+  - The simulation reports period incidence in `results["I"]`, comparable with the input `I`. Beta does not enter the cohort simulation, so the beta level in a scenario name does not change its result, and `forecast_R0()` returns alpha for every scenario.
   - In incidence mode at every frequency, `dC` is now a forward difference (`I_(t+1)`), as in cumulative mode. Lags above one period (daily and weekly incidence) keep the earlier approximation (#178).
 - The rate in row t describes the step from t to t+1. `Model` therefore fits the rates of every training date except the last (whose step leaves the training window), forecast rate i drives forecast step i, and `calculate_R0()` excludes the last training date. A forecast rate labelled with date d is the rate of the step ending at d.
 
