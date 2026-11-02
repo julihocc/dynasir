@@ -206,3 +206,36 @@ class TestCohortSimulation:
         np.testing.assert_allclose(node["C"], node["I"] + node["R"] + node["D"])
         np.testing.assert_allclose(node["A"], node["S"] + node["I"])
         assert (node["I"] >= 0).all()
+
+
+class TestCohortForecastR0:
+    def test_forecast_r0_equals_alpha_in_every_scenario(self):
+        df = _annual_incidence()
+        model = Model(
+            DataContainer(df, mode="incidence", frequency="YE"),
+            start="1980-12-31",
+            stop="2010-12-31",
+        )
+        model.create_model()
+        model.fit_model()
+        model.forecast(steps=3)
+        r0 = model.forecast_R0()
+
+        for level in FORECASTING_LEVELS:
+            alpha = model.forecasting_box["alpha"][level]
+            for column in [c for c in r0.columns if c.startswith(f"{level}|")]:
+                np.testing.assert_allclose(r0[column], alpha)
+
+    def test_beta_level_does_not_change_cohort_simulation(self):
+        df = _annual_incidence()
+        model = _run(
+            DataContainer(df, mode="incidence", frequency="YE"),
+            "1980-12-31",
+            "2010-12-31",
+        )
+        sim = model.simulation_engine.simulation
+        for beta_level in ("lower", "upper"):
+            np.testing.assert_allclose(
+                sim["point"][beta_level]["point"]["I"],
+                sim["point"]["point"]["point"]["I"],
+            )
