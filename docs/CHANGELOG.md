@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `DataContainer` warns when periods with zero incident cases make rates undefined, listing the dates and how many rate values were carried forward from the previous period. Previously these were filled and clipped silently. The new `incidence_offset` argument adds a constant (for example 1) to the case counts inside the rate formulas so the rates stay defined; compartments are unchanged (#167).
+- `DataContainer` now runs the frequency handler's checks (for example at least 10 annual observations) and warns when they fail, and warns when a requested `window` is not used for the frequency (annual data uses no smoothing, monthly at most 2) (#169).
+
 ### Changed
+
+- `evaluate_forecast` reports sMAPE with the standard formula, `200 * mean(|a - f| / (|a| + |f|))`, on a 0-200 scale; points where both values are zero count as zero error. The previous formula had no factor of 2 and no absolute values in the denominator (#171).
 
 - **Incidence data with a recovery lag of at most one period (annual and monthly) is modelled as period cohorts** (#162, #163, #166). The cases of period t are the infectious group for the step to t+1, and all of them leave I by then. This is a behaviour change for annual and monthly incidence models:
   - `alpha_t = A_t * I_(t+1) / (I_t * S_t)`: new cases next period per case, scaled by the susceptible share. It was `1 + I/S` and clipped to a constant. It can exceed 1, so it is forecast as `log_alpha` (no `logit_alpha` column).
@@ -29,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Model(stop=...)` no longer uses data after `stop`. Rates use forward differences, so the last training rate came from the first forecast period; the model now rebuilds the features from the raw data up to `stop` (`DataContainer.up_to`) (#164).
 - The first forecast step uses the first forecast rate. It used the last historical rate, so all scenarios coincided at step 1, and the last forecast rate was never used (#165).
 - The result cache key includes `mode` and `importation_rate`.
+- `evaluate_forecast` computes MAPE over the non-zero actual values and warns how many were skipped; it returns NaN when all actual values are zero, instead of an infinite or NaN value (#171).
 - The `FORECASTER_ALPHA` setting is now the default interval level for `Model.forecast()`; an explicit `alpha=` still takes precedence (#170).
 
 ### Documentation

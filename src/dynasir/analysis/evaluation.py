@@ -6,6 +6,7 @@ models against test data using various statistical metrics.
 """
 
 import json
+import warnings
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
@@ -13,6 +14,41 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from ..core.constants import CENTRAL_TENDENCY_METHODS
+
+
+def _mape(actual: np.ndarray, forecast: np.ndarray) -> float:
+    """Mean absolute percentage error over the non-zero actual values.
+
+    Percentage errors are undefined where the actual value is zero, which is
+    common in incidence data for eliminated diseases. Those points are skipped
+    with a warning; if every actual value is zero the result is NaN.
+    """
+    nonzero = actual != 0
+    n_zero = int((~nonzero).sum())
+    if n_zero:
+        warnings.warn(
+            f"MAPE skips {n_zero} of {actual.size} point(s) where the actual value "
+            "is zero (percentage errors are undefined there).",
+            UserWarning,
+            stacklevel=3,
+        )
+    if not nonzero.any():
+        return float("nan")
+    return float(
+        np.mean(np.abs((actual[nonzero] - forecast[nonzero]) / actual[nonzero])) * 100
+    )
+
+
+def _smape(actual: np.ndarray, forecast: np.ndarray) -> float:
+    """Symmetric MAPE, 200 * mean(|a - f| / (|a| + |f|)), on a 0-200 scale.
+
+    Points where both values are zero count as zero error.
+    """
+    denominator = np.abs(actual) + np.abs(forecast)
+    terms = np.zeros_like(denominator, dtype=float)
+    defined = denominator != 0
+    terms[defined] = np.abs(actual[defined] - forecast[defined]) / denominator[defined]
+    return float(np.mean(terms) * 200)
 
 
 def evaluate_forecast(
@@ -33,7 +69,9 @@ def evaluate_forecast(
         filename: Optional filename for saving (auto-generated if None)
 
     Returns:
-        Dictionary with evaluation metrics for each compartment and method
+        Dictionary with evaluation metrics for each compartment and method:
+        ``mae``, ``mse``, ``rmse``, ``mape`` (over non-zero actual values; NaN
+        if all are zero) and ``smape`` (0-200 scale)
     """
     evaluation = {}
 
@@ -57,8 +95,8 @@ def evaluate_forecast(
                 mae = mean_absolute_error(actual, forecast)
                 mse = mean_squared_error(actual, forecast)
                 rmse = np.sqrt(mse)
-                mape = np.mean(np.abs((actual - forecast) / actual)) * 100
-                smape = np.mean(np.abs((actual - forecast) / (actual + forecast))) * 100
+                mape = _mape(actual, forecast)
+                smape = _smape(actual, forecast)
 
             evaluation[compartment_code][method] = {
                 "mae": mae,
