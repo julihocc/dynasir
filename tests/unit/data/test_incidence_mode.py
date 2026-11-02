@@ -66,8 +66,8 @@ class TestIncidenceModeBasics:
         # C should still be monotonic (cumulative)
         assert all(result["C"].diff().dropna() >= 0)
 
-    def test_incidence_mode_dc_equals_i(self):
-        """In incidence mode, dC should equal I (incident cases)."""
+    def test_incidence_mode_dc_is_next_period_incidence(self):
+        """In incidence mode, dC_t = C_(t+1) - C_t is the next period's I (#162)."""
         data = pd.DataFrame(
             {"I": [100, 50, 75, 30, 45], "D": [5, 8, 10, 12, 14], "N": [10000] * 5},
             index=pd.date_range("2020-01-01", periods=5, freq="YE"),
@@ -75,9 +75,14 @@ class TestIncidenceModeBasics:
 
         result = feature_engineering(data, mode="incidence")
 
-        # dC = I (incident cases per period)
+        # dC_t = I_(t+1); the last row has no next period
         assert "dC" in result.columns
-        pd.testing.assert_series_equal(result["dC"], result["I"], check_names=False)
+        pd.testing.assert_series_equal(
+            result["dC"].iloc[:-1],
+            result["I"].shift(-1).iloc[:-1].astype(float),
+            check_names=False,
+            check_dtype=False,
+        )
 
 
 class TestIncidenceModeCompartments:

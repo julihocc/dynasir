@@ -502,7 +502,7 @@ class TestModelR0Calculations:
         assert R0.name == "R0"
 
     def test_calculate_R0_correct_length(self, sample_data_container):
-        """Test that R₀ series has same length as model data."""
+        """Test that R₀ covers every complete step (all dates but the last)."""
         # Arrange
         model = Model(sample_data_container)
 
@@ -510,7 +510,8 @@ class TestModelR0Calculations:
         R0 = model.calculate_R0()
 
         # Assert
-        assert len(R0) == len(model.data)
+        assert len(R0) == len(model.data) - 1
+        assert R0.index[-1] == model.data.index[-2]
 
     def test_calculate_R0_non_negative(self, sample_data_container):
         """Test that R₀ values are non-negative."""
@@ -531,10 +532,10 @@ class TestModelR0Calculations:
         # Act
         R0 = model.calculate_R0()
 
-        # Calculate expected values manually
-        alpha = model.data["alpha"]
-        beta = model.data["beta"]
-        gamma = model.data["gamma"]
+        # Calculate expected values manually (complete steps only)
+        alpha = model.data["alpha"].iloc[:-1]
+        beta = model.data["beta"].iloc[:-1]
+        gamma = model.data["gamma"].iloc[:-1]
         expected_R0 = alpha / (beta + gamma)
 
         # Assert

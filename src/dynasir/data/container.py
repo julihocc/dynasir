@@ -161,6 +161,35 @@ class DataContainer:
         # Run the processing pipeline
         self.process()
 
+    def up_to(self, stop) -> "DataContainer":
+        """
+        Return a container rebuilt from the raw data up to ``stop``.
+
+        Rates use forward differences (the rate in row t uses the value at
+        t+1), so features computed on the full series would give the row at
+        ``stop`` information from the next period. Rebuilding from truncated
+        raw data keeps a model trained up to ``stop`` out of sample.
+
+        Args:
+            stop: Last date to keep (inclusive)
+
+        Returns:
+            A new DataContainer with the same settings, or ``self`` if no raw
+            observation falls after ``stop`` or the raw index is not a
+            DatetimeIndex.
+        """
+        if stop is None or not isinstance(self.raw_data.index, pd.DatetimeIndex):
+            return self
+        stop = pd.Timestamp(stop)
+        if self.raw_data.index.max() <= stop:
+            return self
+        return self._rebuild(self.raw_data.loc[self.raw_data.index <= stop])
+
+    def _rebuild(self, raw_data: pd.DataFrame) -> "DataContainer":
+        return type(self)(
+            raw_data, window=self.window, mode=self.mode, frequency=self.frequency
+        )
+
     def process(self) -> None:
         """
         Process the raw data through the preprocessing and feature engineering pipeline.

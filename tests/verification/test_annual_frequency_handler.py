@@ -105,9 +105,13 @@ class TestAnnualFrequencyHandlerVerification:
         rate_columns = ["alpha", "beta", "gamma"]
         for col in rate_columns:
             assert col in container.data.columns
-            # Rates should be between 0 and 1 (or NaN for insufficient data)
             valid_rates = container.data[col].dropna()
-            assert (valid_rates >= 0).all() and (valid_rates <= 1).all()
+            assert np.isfinite(valid_rates).all()
+            assert (valid_rates >= 0).all()
+            # beta and gamma are shares of a cohort; alpha (new cases per
+            # case, scaled by the susceptible share) can exceed 1
+            if col != "alpha":
+                assert (valid_rates <= 1).all()
 
         print(f"✓ Rate calculations valid for annual data")
 

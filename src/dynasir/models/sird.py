@@ -15,6 +15,7 @@ from dynasir.core.config import get_settings
 from ..analysis.evaluation import evaluate_forecast as _evaluate_forecast
 from ..analysis.visualization import visualize_results as _visualize_results
 from ..core.constants import COMPARTMENTS, FORECASTING_LEVELS, LOGIT_RATIOS
+from ..data.features import LOG_ALPHA, get_forecast_columns
 from ..data.preprocessing import reindex_data
 from .base import BaseModel, SIRDModelMixin
 from .forecasting.orchestrator import ForecastingOrchestrator
@@ -207,6 +208,16 @@ class Model(BaseModel, SIRDModelMixin):
         self.forecaster_name = forecaster
         self.forecaster_kwargs = forecaster_kwargs
 
+        # Rates use forward differences, so features built on the full series
+        # would give the row at `stop` the next period's data. Rebuild the
+        # features from the raw data up to `stop` (#164).
+        training_container = (
+            data_container.up_to(stop)
+            if hasattr(data_container, "up_to")
+            else data_container
+        )
+        self.training_container = training_container
+
         # Reindex data (frequency-aware - skip reindexing for non-daily data)
         if hasattr(data_container, "frequency") and data_container.frequency in (
             "ME",
@@ -216,7 +227,7 @@ class Model(BaseModel, SIRDModelMixin):
             freq_to_use = data_container.frequency
             logging.debug(f"Using frequency-aware reindexing: {freq_to_use}")
             self.data = reindex_data(
-                data_container.data,
+                training_container.data,
                 start,
                 stop,
                 freq=freq_to_use,
@@ -224,22 +235,25 @@ class Model(BaseModel, SIRDModelMixin):
             )
         else:
             # For daily/weekly or when no frequency info: use default (daily reindexing)
-            self.data = reindex_data(data_container.data, start, stop)
+            self.data = reindex_data(training_container.data, start, stop)
 
-        # Select only logit ratios that exist in the data (SIRD vs SIRDV)
-        available_logit_ratios = [r for r in LOGIT_RATIOS if r in self.data.columns]
-        self.logit_ratios_values = self.data[available_logit_ratios].values
+        # Transformed rates to forecast: logit rates, or for period-cohort
+        # incidence data log alpha and logit gamma (beta = 1 - gamma)
+        available_logit_ratios = get_forecast_columns(self.data.columns)
+        self.cohort = LOG_ALPHA in available_logit_ratios
+        # The rate in row t is the step from t to t+1; the last row's step
+        # leaves the training window, so it is not used for fitting (#164, #165)
+        self.logit_ratios_values = self.data[available_logit_ratios].values[:-1]
         self.active_logit_ratios = available_logit_ratios  # Store for later use
 
         # Detect vaccination presence
         self.has_vaccination = "logit_delta" in available_logit_ratios
 
         # Log model type detection
-        n_rates = len(available_logit_ratios)
-        model_type = "SIRDV" if n_rates == 4 else "SIRD"
+        model_type = "SIRDV" if self.has_vaccination else "SIRD"
         logging.info(
-            f"Model initialized with {n_rates} rates ({model_type} mode), "
-            f"forecaster='{forecaster}'"
+            f"Model initialized with {len(available_logit_ratios)} forecast rates "
+            f"({model_type} mode), forecaster='{forecaster}'"
         )
 
         # Forecasting component - use orchestrator for multi-backend support
@@ -377,7 +391,7 @@ class Model(BaseModel, SIRDModelMixin):
 
             # Adjust max_lag if it exceeds available data
             # VAR needs roughly max_lag * n_equations observations, so be very conservative
-            available_obs = len(self.data)
+            available_obs = len(self.logit_ratios_values)
             # Rule: max_lag should leave at least 20 observations for stable covariance
             # With 3 rates: each lag costs ~3 df, so (available - 20) / 3 / 2 (additional safety)
             max_allowed_lag = max(1, (available_obs - 20) // 6)
@@ -553,12 +567,9 @@ class Model(BaseModel, SIRDModelMixin):
                 "I",
                 "R",
                 "D",
-                "alpha",
-                "beta",
-                "gamma",
             ]
             if self.has_vaccination:
-                initial_state_keys.extend(["V", "delta"])
+                initial_state_keys.append("V")
 
             initial_state = {
                 k: float(last_hist[k])
@@ -591,6 +602,9 @@ class Model(BaseModel, SIRDModelMixin):
                 "window": self.window,
                 "steps_to_forecast": self.steps_to_forecast,
                 "has_vaccination": self.has_vaccination,
+                "mode": self.mode,
+                "cohort": self.cohort,
+                "importation_rate": self.importation_rate,
                 "forecaster": self.forecaster_name,  # Include backend in cache key
                 "forecaster_kwargs": self.forecaster_kwargs,  # Include config in cache key
                 "interval": [d.strftime("%Y-%m-%d") for d in self.forecasting_interval],
@@ -718,6 +732,12 @@ class Model(BaseModel, SIRDModelMixin):
 
         Notes:
             - Calculated from historical data rates (alpha, beta, gamma)
+            - The value at date t describes the step from t to t+1, so the last
+              training date (whose step leaves the training window) is excluded
+            - For period-cohort incidence data (annual or monthly incidence),
+              beta + gamma = 1 and R₀(t) = α(t), which is close to the growth
+              ratio I(t+1)/I(t). With annual counts it is a ratio between
+              successive years, not a per-generation reproduction number.
             - Use forecast_R0() for forecasted reproduction numbers
             - High variability in R₀ reflects changing interventions and behavior
         """
@@ -728,9 +748,10 @@ class Model(BaseModel, SIRDModelMixin):
                 f"Missing required columns for R₀ calculation: {missing_cols}"
             )
 
-        alpha = self.data["alpha"]
-        beta = self.data["beta"]
-        gamma = self.data["gamma"]
+        complete_steps = self.data.iloc[:-1]
+        alpha = complete_steps["alpha"]
+        beta = complete_steps["beta"]
+        gamma = complete_steps["gamma"]
 
         R0 = alpha / (beta + gamma)
         R0.name = "R0"
