@@ -379,22 +379,15 @@ class Model:
         except Exception as e:
             raise Exception(e)
 
+        # statsmodels returns (point, lower, upper), each of shape (steps, n_rates)
+        point, lower, upper = self.forecasted_logit_ratios_tuple_arrays
         self.forecasting_box = {
-            LOGIT_RATIOS[0]: pd.DataFrame(
-                self.forecasted_logit_ratios_tuple_arrays[0],
+            ratio: pd.DataFrame(
+                {"lower": lower[:, i], "point": point[:, i], "upper": upper[:, i]},
                 index=self.forecasting_interval,
                 columns=FORECASTING_LEVELS,
-            ),
-            LOGIT_RATIOS[1]: pd.DataFrame(
-                self.forecasted_logit_ratios_tuple_arrays[1],
-                index=self.forecasting_interval,
-                columns=FORECASTING_LEVELS,
-            ),
-            LOGIT_RATIOS[2]: pd.DataFrame(
-                self.forecasted_logit_ratios_tuple_arrays[2],
-                index=self.forecasting_interval,
-                columns=FORECASTING_LEVELS,
-            ),
+            )
+            for i, ratio in enumerate(SIRD_LOGIT_RATIOS)
         }
 
         self.forecasting_box["alpha"] = self.forecasting_box["logit_alpha"].apply(

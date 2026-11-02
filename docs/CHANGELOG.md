@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `run_simulations()` no longer crashes with `BrokenProcessPool` when the process pool breaks, for example in a Windows or macOS script without an `if __name__ == "__main__":` guard. It logs a warning that explains the cause and reruns the simulations sequentially (#160).
 - Legacy `dynasir.epydemics.Model` initialises again, and its results no longer fail on the SIRDV rate and compartment (#173).
 - `evaluate_forecast` works with read-only arrays (#173).
+- The VAR backend no longer swaps the `lower` and `point` forecast levels. statsmodels returns `(point, lower, upper)`, which was read as `(lower, point, upper)`, so every "point" scenario was driven by the lower bound. The legacy `dynasir.epydemics.Model` read the same tuple as one rate per element and now builds each rate's levels correctly (#175).
+- Constant rate columns (for example gamma when all deaths are zero) no longer make VAR fitting fail with a bare `LinAlgError`. They are left out of the model, held at their constant value at every forecast level, and named in a warning that suggests the likely input cause. With one varying column the backend fits a univariate AutoReg model, and with none it repeats the constants. The `trend='n'` workaround is removed, and VAR(0) fits can now be forecast (#168).
+- The `FORECASTER_ALPHA` setting is now the default interval level for `Model.forecast()`; an explicit `alpha=` still takes precedence (#170).
 
 ### Documentation
 
