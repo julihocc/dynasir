@@ -857,6 +857,9 @@ class Model(BaseModel, SIRDModelMixin):
             - Each column represents a different scenario combination
             - Use mean(axis=1) to get average R₀ across scenarios
             - Uncertainty in R₀ reflects uncertainty in underlying rates
+            - For period-cohort incidence data beta = 1 - gamma, so R₀ equals
+              alpha in every scenario; the beta and gamma levels in the column
+              names do not change the value
         """
         if not hasattr(self, "forecasting_box") or self.forecasting_box is None:
             raise ValueError(
@@ -865,15 +868,20 @@ class Model(BaseModel, SIRDModelMixin):
             )
 
         R0_forecasts = {}
+        cohort = getattr(self, "cohort", False)
 
         for alpha_level in FORECASTING_LEVELS:
             for beta_level in FORECASTING_LEVELS:
                 for gamma_level in FORECASTING_LEVELS:
                     alpha = self.forecasting_box["alpha"][alpha_level]
+                    scenario = f"{alpha_level}|{beta_level}|{gamma_level}"
+                    if cohort:
+                        # beta + gamma = 1 for each cohort; independent beta
+                        # and gamma levels would not add up to one
+                        R0_forecasts[scenario] = alpha.copy()
+                        continue
                     beta = self.forecasting_box["beta"][beta_level]
                     gamma = self.forecasting_box["gamma"][gamma_level]
-
-                    scenario = f"{alpha_level}|{beta_level}|{gamma_level}"
                     R0_forecasts[scenario] = alpha / (beta + gamma)
 
         result = pd.DataFrame(R0_forecasts, index=self.forecasting_interval)
