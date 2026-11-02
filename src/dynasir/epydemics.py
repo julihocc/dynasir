@@ -23,6 +23,10 @@ from dynasir.core.exceptions import NotDataFrameError
 
 from .data.frequency_handlers import make_forecast_index
 
+# The legacy model is SIRD-only; the shared constants also include the SIRDV rate and compartment
+SIRD_LOGIT_RATIOS = [ratio for ratio in LOGIT_RATIOS if ratio != "logit_delta"]
+SIRD_COMPARTMENTS = [compartment for compartment in COMPARTMENTS if compartment != "V"]
+
 
 def prepare_for_logit_function(data):
     logging.debug(f"Filtering data for {LOGIT_RATIOS}")
@@ -332,6 +336,9 @@ class Model:
         self.logit_ratios_model_fitted = None
         self.forecasted_logit_ratios = None
 
+        self.data = reindex_data(data_container.data, start, stop)
+        self.logit_ratios_values = self.data[SIRD_LOGIT_RATIOS].values
+
     @property
     def days_to_forecast(self):
         """Backward-compatible alias for the frequency-independent forecast steps."""
@@ -340,9 +347,6 @@ class Model:
     @days_to_forecast.setter
     def days_to_forecast(self, value):
         self.steps_to_forecast = value
-
-        self.data = reindex_data(data_container.data, start, stop)
-        self.logit_ratios_values = self.data[LOGIT_RATIOS].values
 
     def create_logit_ratios_model(self, *args, **kwargs):
         self.logit_ratios_model = VAR(self.logit_ratios_values, *args, **kwargs)
@@ -500,7 +504,7 @@ class Model:
     def generate_result(self):
         self.results = Box()
 
-        for compartment in COMPARTMENTS:
+        for compartment in SIRD_COMPARTMENTS:
             self.results[compartment] = self.create_results_dataframe(compartment)
 
     def visualize_results(self, compartment_code, testing_data=None, log_response=True):
