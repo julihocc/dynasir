@@ -78,7 +78,7 @@ class Model(BaseModel, SIRDModelMixin):
         >>> model.create_model()
         >>> model.fit_model(max_lag=10)
         >>> model.forecast(steps=30)
-        >>> model.run_simulations(n_jobs=None)
+        >>> model.run_simulations()
         >>> model.generate_result()
 
         **Measles with incidence mode:**
@@ -492,11 +492,13 @@ class Model(BaseModel, SIRDModelMixin):
         """
         Run epidemic simulations based on forecasted rates.
 
-        This method supports both sequential and parallel execution modes for improved performance.
+        Runs sequentially by default. A process pool (n_jobs > 1) rarely pays off because each
+        scenario takes milliseconds; on Windows and macOS it also requires an
+        ``if __name__ == "__main__":`` guard in scripts. See ``EpidemicSimulation.run_simulations``.
 
         Args:
             n_jobs: Number of parallel jobs to use:
-                - None: Use config default (auto-detect CPU count if PARALLEL_SIMULATIONS=True)
+                - None: Use the configured default (sequential unless PARALLEL_SIMULATIONS=True)
                 - 1: Sequential execution
                 - >1: Parallel execution with specified number of workers
 
@@ -505,7 +507,7 @@ class Model(BaseModel, SIRDModelMixin):
             ValueError: If n_jobs < 1
 
         Examples:
-            >>> model.run_simulations()  # Use config default
+            >>> model.run_simulations()  # Configured default (sequential)
             >>> model.run_simulations(n_jobs=1)  # Force sequential
             >>> model.run_simulations(n_jobs=4)  # Use 4 parallel workers
         """
@@ -795,7 +797,7 @@ class Model(BaseModel, SIRDModelMixin):
             importation_rate=scenario_importation,
         )
 
-        # Run simulation (using default/auto n_jobs)
+        # Run simulation with the configured default n_jobs
         temp_simulation.run_simulations(n_jobs=None)
         temp_simulation.generate_result()
 

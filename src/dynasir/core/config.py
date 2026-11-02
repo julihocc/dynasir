@@ -92,7 +92,12 @@ class Settings(BaseSettings):
 
     # --- Parallelization Settings ---
     PARALLEL_SIMULATIONS: bool = Field(
-        True, description="Enable parallel simulation execution by default."
+        False,
+        description=(
+            "Run simulations in a process pool when n_jobs is not given. Off by default: "
+            "each scenario takes milliseconds, so starting worker processes usually costs more "
+            "than it saves, and on spawn platforms (Windows, macOS) scripts need a __main__ guard."
+        ),
     )
     N_SIMULATION_JOBS: Optional[int] = Field(
         None,

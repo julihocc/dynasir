@@ -19,7 +19,7 @@ Note: DynaSIR (formerly epydemics) is the canonical package name going forward.
 -   **Temporal Aggregation** (v0.9.0): Frequency-aware aggregation that skips resampling when source and target frequencies match.
 -   **Business Day Support** (v0.9.0): Dedicated handler for trading-day calendars (252 days/year) with validated lags and recovery windows.
 -   **Data Container**: A convenient class for loading, preprocessing, and storing epidemiological data.
--   **Parallel Simulations**: Multi-core support for faster Monte Carlo simulations (27 scenarios for SIRD, 81 for SIRDV).
+-   **Scenario Simulations**: 27 scenarios for SIRD, 81 for SIRDV, run sequentially by default, with an optional process pool (`n_jobs`).
 -   **Result Caching**: File-based caching to avoid recomputing identical analyses.
 -   **Model Evaluation**: Tools for evaluating model performance with MAE, MSE, RMSE, MAPE, SMAPE metrics.
 -   **Visualization**: Professional plotting functions for results and forecasts.
@@ -48,7 +48,7 @@ The SIRDV model extends the classical SIRD model by incorporating vaccination:
 - Automatic detection from vaccination data
 - 81 simulation scenarios (3⁴ confidence levels)
 - Conservation law: N = S + I + R + D + V
-- Parallel execution recommended for performance
+- Sequential simulation by default; the 81 scenarios take well under a second
 
 ## Quick Start: Reporting
 

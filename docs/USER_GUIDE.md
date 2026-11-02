@@ -40,7 +40,7 @@ model = Model(container, start="2020-03-01", stop="2020-12-31")
 model.create_model()
 model.fit_model(max_lag=10)
 model.forecast(steps=30)
-model.run_simulations(n_jobs=None)
+model.run_simulations()
 model.generate_result()
 ```
 
@@ -193,7 +193,7 @@ model = Model(container, start="2020-01", stop="2021-12")
 model.create_model()
 model.fit_model(max_lag=3)
 model.forecast(steps=365)  # 1 year
-model.run_simulations(n_jobs=None)
+model.run_simulations()
 model.generate_result()
 
 # Aggregate back to monthly
@@ -298,7 +298,7 @@ model.forecast(steps=5)     # 5-year forecast
 - Start with `max_lag=10` for initial exploration
 - Use AIC for lag selection: `model.fit_model(max_lag=10, ic="aic")`
 - Forecast reasonable horizons (30-90 days for daily data)
-- Use parallel simulations: `n_jobs=None` (auto-detect CPUs)
+- Keep the default sequential simulations; parallel workers rarely pay off (see Slow Simulation Performance)
 
 ❌ **DON'T:**
 - Over-forecast (> 6 months ahead gets unreliable)
@@ -353,27 +353,30 @@ model = Model(container, start="2020-01-01", stop="2021-12-31")
 
 ### Slow Simulation Performance
 
-**Solution**: Enable parallel execution
+Simulations run sequentially by default. Each scenario (27 for SIRD, 81 for
+SIRDV) takes milliseconds, so starting worker processes usually costs more than
+it saves. On a 12-core Windows machine, 60-day forecasts took about 0.02 s (SIRD)
+and 0.05-0.08 s (SIRDV) sequentially, against about 5 s with one worker per CPU.
+Benchmark before switching parallel execution on.
+
 ```python
-# Auto-detect CPUs (4-7x speedup on multi-core)
-model.run_simulations(n_jobs=None)
-
-# Or specify cores
-model.run_simulations(n_jobs=4)
-
-# Sequential (slow, for debugging)
-model.run_simulations(n_jobs=1)
+model.run_simulations()          # Default: sequential
+model.run_simulations(n_jobs=4)  # Process pool with 4 workers
 ```
 
-On Windows, multiprocessing uses the `spawn` start method. Scripts that use
-parallel simulations must put the application entry point behind a `__main__`
-guard; otherwise child processes can re-import and re-run the script. In
-notebooks, interactive sessions, or scripts that cannot use this guard, run
-simulations with `n_jobs=1`.
+To make a process pool the default, set `PARALLEL_SIMULATIONS=true` (and
+optionally `N_SIMULATION_JOBS`) in the environment or a `.env` file.
+
+On Windows and macOS, worker processes are started with `spawn` and re-import
+the calling script. Scripts that request parallel execution must put the code
+that runs simulations behind a `__main__` guard; otherwise each worker re-runs
+the script's top-level code and fails. If the pool breaks, DynaSIR logs a
+warning and reruns the simulations sequentially. In notebooks and interactive
+sessions, keep the sequential default.
 
 ```python
 def main():
-    model.run_simulations()  # Parallel execution is safe inside the guarded entry point
+    model.run_simulations(n_jobs=4)
 
 
 if __name__ == "__main__":

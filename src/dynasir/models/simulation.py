@@ -6,6 +6,7 @@ import itertools
 import logging
 import multiprocessing as mp
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures.process import BrokenProcessPool
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
@@ -293,30 +294,36 @@ class EpidemicSimulation:
         """
         Run epidemic simulations for all combinations of rate confidence levels.
 
-        This method supports both sequential and parallel execution modes:
-        - n_jobs=1: Sequential execution (original behavior)
-        - n_jobs>1: Parallel execution with specified number of workers
-        - n_jobs=None: Auto-detect CPU count and use parallel execution
+        Execution modes:
+        - n_jobs=None: use the configured default. This is sequential unless the
+          ``PARALLEL_SIMULATIONS`` setting is enabled, in which case
+          ``N_SIMULATION_JOBS`` (or the CPU count) workers are used.
+        - n_jobs=1: sequential execution.
+        - n_jobs>1: a process pool with that many workers.
+
+        Each scenario takes milliseconds, so a process pool rarely pays off: on
+        Windows and macOS, where workers are started with ``spawn``, starting
+        them usually costs far more than the simulations themselves. Spawned
+        workers also re-import the calling script, so scripts that request
+        parallel execution need an ``if __name__ == "__main__":`` guard. If the
+        pool breaks (for example because that guard is missing), the
+        simulations are rerun sequentially and a warning is logged.
 
         Args:
-            n_jobs: Number of parallel jobs to use:
-                - None: Auto-detect CPU count (default from config)
-                - 1: Sequential execution
-                - >1: Parallel execution with specified workers
+            n_jobs: Number of parallel jobs (None for the configured default,
+                1 for sequential, >1 for a process pool with that many workers).
 
         Raises:
             ValueError: If n_jobs < 1
 
         Examples:
+            >>> sim.run_simulations()  # Configured default (sequential)
             >>> sim.run_simulations(n_jobs=1)  # Sequential
-            >>> sim.run_simulations(n_jobs=4)  # 4 parallel workers
-            >>> sim.run_simulations(n_jobs=None)  # Auto-detect CPUs
+            >>> sim.run_simulations(n_jobs=4)  # 4 worker processes
         """
-        # Validate n_jobs parameter
         if n_jobs is not None and n_jobs < 1:
             raise ValueError("n_jobs must be None or >= 1")
 
-        # Get default from config if not specified
         if n_jobs is None:
             settings = get_settings()
             if settings.PARALLEL_SIMULATIONS:
@@ -326,87 +333,56 @@ class EpidemicSimulation:
 
         self.create_simulation_box()
 
-        # Generate all scenario combinations
         # SIRD: 27 scenarios (3^3), SIRDV: 81 scenarios (3^4)
-        if self.has_vaccination:
-            scenarios = list(
-                itertools.product(
-                    FORECASTING_LEVELS,
-                    FORECASTING_LEVELS,
-                    FORECASTING_LEVELS,
-                    FORECASTING_LEVELS,
-                )
-            )
-            logging.info(f"Running {len(scenarios)} SIRDV scenarios (3^4)")
-        else:
-            scenarios = list(
-                itertools.product(
-                    FORECASTING_LEVELS, FORECASTING_LEVELS, FORECASTING_LEVELS
-                )
-            )
-            logging.info(f"Running {len(scenarios)} SIRD scenarios (3^3)")
+        n_rates = 4 if self.has_vaccination else 3
+        scenarios = list(itertools.product(FORECASTING_LEVELS, repeat=n_rates))
+        logging.info(
+            f"Running {len(scenarios)} {'SIRDV' if self.has_vaccination else 'SIRD'} "
+            f"scenarios (3^{n_rates})"
+        )
 
         if n_jobs == 1:
-            # Sequential execution (original behavior)
-            for current_levels in scenarios:
-                current_simulation = self.simulate_for_given_levels(current_levels)
+            self._run_sequential(scenarios)
+            return
 
-                if self.has_vaccination:
-                    # Unpack 4 levels for SIRDV
-                    (
-                        logit_alpha_level,
-                        logit_beta_level,
-                        logit_gamma_level,
-                        logit_delta_level,
-                    ) = current_levels
-                    self.simulation[logit_alpha_level][logit_beta_level][
-                        logit_gamma_level
-                    ][logit_delta_level] = current_simulation
-                else:
-                    # Unpack 3 levels for SIRD
-                    logit_alpha_level, logit_beta_level, logit_gamma_level = (
-                        current_levels
-                    )
-                    self.simulation[logit_alpha_level][logit_beta_level][
-                        logit_gamma_level
-                    ] = current_simulation
-        else:
-            # Parallel execution
-            with ProcessPoolExecutor(max_workers=n_jobs) as executor:
-                # Submit all simulation jobs
-                future_to_scenario = {
-                    executor.submit(
-                        _run_single_simulation,
-                        self.data,
-                        self.forecasting_box,
-                        self.forecasting_interval,
-                        scenario,
-                        self.importation_rate,
-                    ): scenario
-                    for scenario in scenarios
-                }
+        try:
+            self._run_parallel(scenarios, n_jobs)
+        except BrokenProcessPool:
+            logging.warning(
+                "The simulation process pool broke (a worker process exited unexpectedly), "
+                "so the simulations were rerun sequentially. On Windows and macOS worker "
+                "processes re-import the calling script; put the code that runs simulations "
+                'under an `if __name__ == "__main__":` guard, or use n_jobs=1 (the default).'
+            )
+            self.create_simulation_box()
+            self._run_sequential(scenarios)
 
-                # Collect results as they complete
-                for future in as_completed(future_to_scenario):
-                    levels, simulation_result = future.result()
+    def _run_sequential(self, scenarios) -> None:
+        for levels in scenarios:
+            self._store_simulation(levels, self.simulate_for_given_levels(levels))
 
-                    if self.has_vaccination:
-                        # Unpack 4 levels for SIRDV
-                        (
-                            logit_alpha_level,
-                            logit_beta_level,
-                            logit_gamma_level,
-                            logit_delta_level,
-                        ) = levels
-                        self.simulation[logit_alpha_level][logit_beta_level][
-                            logit_gamma_level
-                        ][logit_delta_level] = simulation_result
-                    else:
-                        # Unpack 3 levels for SIRD
-                        logit_alpha_level, logit_beta_level, logit_gamma_level = levels
-                        self.simulation[logit_alpha_level][logit_beta_level][
-                            logit_gamma_level
-                        ] = simulation_result
+    def _run_parallel(self, scenarios, n_jobs: int) -> None:
+        with ProcessPoolExecutor(max_workers=n_jobs) as executor:
+            futures = [
+                executor.submit(
+                    _run_single_simulation,
+                    self.data,
+                    self.forecasting_box,
+                    self.forecasting_interval,
+                    scenario,
+                    self.importation_rate,
+                )
+                for scenario in scenarios
+            ]
+            for future in as_completed(futures):
+                self._store_simulation(*future.result())
+
+    def _store_simulation(self, levels, simulation_result: pd.DataFrame) -> None:
+        """Store one scenario's result in the nested simulation box."""
+        node = self.simulation
+        for level in levels[:-1]:
+            node = node[level]
+        node[levels[-1]] = simulation_result
 
     def create_results_dataframe(self, compartment: str) -> pd.DataFrame:
         """

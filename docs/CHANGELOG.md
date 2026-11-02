@@ -5,6 +5,18 @@ All notable changes to the dynasir project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- `run_simulations()` now runs sequentially by default (`PARALLEL_SIMULATIONS` defaults to `False`). Each scenario takes milliseconds, and starting worker processes made the default call about 200 times slower on Windows (about 5 s instead of 0.02 s for 27 SIRD scenarios). Set `PARALLEL_SIMULATIONS=true` or pass `n_jobs>1` to use a process pool (#160).
+
+### Fixed
+
+- `run_simulations()` no longer crashes with `BrokenProcessPool` when the process pool breaks, for example in a Windows or macOS script without an `if __name__ == "__main__":` guard. It logs a warning that explains the cause and reruns the simulations sequentially (#160).
+- Legacy `dynasir.epydemics.Model` initialises again, and its results no longer fail on the SIRDV rate and compartment (#173).
+- `evaluate_forecast` works with read-only arrays (#173).
+
 ## [1.0.0] - 2026-01-13
 
 ### Summary
