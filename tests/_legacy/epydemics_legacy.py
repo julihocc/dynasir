@@ -1,13 +1,13 @@
 """
 Epydemics: Epidemiological Forecasting with Time Series Analysis.
 
-This package implements SIRD (Susceptible-Infected-Recovered-Deaths) epidemiological 
-models with time-varying parameters modeled using VAR (Vector Autoregression) analysis 
+This package implements SIRD (Susceptible-Infected-Recovered-Deaths) epidemiological
+models with time-varying parameters modeled using VAR (Vector Autoregression) analysis
 on logit-transformed rates.
 
 For backward compatibility, the main functionality remains available through:
 - process_data_from_owid: Download and process OWID COVID-19 data
-- DataContainer: Data preprocessing and feature engineering  
+- DataContainer: Data preprocessing and feature engineering
 - Model: SIRD model with VAR forecasting
 
 New modular imports:
@@ -20,31 +20,32 @@ import logging
 import pandas as pd
 
 from .data.container import DataContainer
-from .models.sird import Model  
+from .models.sird import Model
 from .core.exceptions import NotDataFrameError
 
 # Configure logging to suppress matplotlib warnings
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
+
 # Import process_data_from_owid for backward compatibility
 def process_data_from_owid(
-        url="https://covid.ourworldindata.org/data/owid-covid-data.csv",
-        iso_code="OWID_WRL"):
+    url="https://covid.ourworldindata.org/data/owid-covid-data.csv", iso_code="OWID_WRL"
+):
     """
     Download and process OWID COVID-19 data for epidemiological modeling.
-    
+
     This function downloads data from Our World in Data (OWID) and processes it
     for use with the epydemics modeling framework. It filters by ISO code,
     selects required columns, and renames them to the internal format.
-    
+
     Args:
         url: URL to OWID COVID-19 CSV data
         iso_code: ISO country code to filter data (default: "OWID_WRL" for global)
-        
+
     Returns:
         pd.DataFrame: Processed data with columns [C, D, N] and date index
-        
+
     Raises:
         Exception: If data download fails
         ValueError: If required columns are missing or date indexing fails
@@ -90,6 +91,6 @@ def process_data_from_owid(
 __all__ = [
     "DataContainer",
     "Model",
-    "NotDataFrameError", 
+    "NotDataFrameError",
     "process_data_from_owid",
 ]

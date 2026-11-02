@@ -42,8 +42,8 @@ def evaluate_forecast(
         evaluation[compartment_code] = {}
 
         for method in CENTRAL_TENDENCY_METHODS:
-            forecast = np.asarray(compartment[method].values)
-            actual = np.asarray(testing_data[compartment_code].values)
+            forecast = np.array(compartment[method].values, copy=True)
+            actual = np.array(testing_data[compartment_code].values, copy=True)
 
             # Replace NaN or inf with 0
             if forecast.size > 0:
