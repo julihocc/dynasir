@@ -44,6 +44,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clarify that annual incidence support does not guarantee forecast skill on
   short series, document the flat-median warning, and add guidance for
   validation and importation assumptions (#161).
+- Update the `AnnualFrequencyHandler` docstring, the `get_frequency_handler`
+  example (the annual recovery lag is 14/365, not 1), the known-limitations
+  page and the user guide's annual section to describe current behaviour:
+  period-cohort rates, zero-case periods and `incidence_offset`, widening
+  scenario ranges, and the open daily/weekly incidence issues (#172, #177,
+  #178). The guide no longer recommends `window=3` for annual data, which is
+  not smoothed.
 
 ## [1.0.0] - 2026-01-13
 

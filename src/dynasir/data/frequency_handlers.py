@@ -227,17 +227,17 @@ class AnnualFrequencyHandler(FrequencyHandler):
     """
     Handler for annual frequency data.
 
-    Warning:
-        Annual frequency with incidence mode may produce constant rates, preventing
-        VAR model fitting. This occurs because recovery_lag rounds to 0 years,
-        causing beta = I/I = 1.0 (constant).
+    The recovery lag is 14/365 years, below one period, so incidence data is
+    modelled as period cohorts: the cases of year t are the infectious group
+    for the step to year t+1. The infection rate is then about the growth ratio
+    I(t+1)/I(t) scaled by the susceptible share, beta = 1 - gamma, and
+    ``results["I"]`` is annual incidence.
 
-        Recommended alternatives:
-        - Use monthly (ME) or weekly (W) frequency for eliminated diseases
-        - Use cumulative mode if data represents cumulative totals
-        - Wait for non-VAR backends (ARIMA, Prophet) in future versions
-
-        See docs/user-guide/known-limitations.md for details.
+    Note:
+        A fit on a few dozen annual observations does not imply forecast skill.
+        Zero-case years make rates undefined (see ``incidence_offset`` in
+        DataContainer), and scenario ranges widen quickly with the horizon.
+        See docs/user-guide/known-limitations.md.
     """
 
     frequency_code = "YE"  # Modern pandas alias for year-end
@@ -381,8 +381,8 @@ def get_frequency_handler(frequency: str) -> FrequencyHandler:
 
     Examples:
         >>> handler = get_frequency_handler('annual')
-        >>> handler.get_recovery_lag()
-        1
+        >>> round(handler.get_recovery_lag(), 4)  # 14 days in years
+        0.0384
         >>> handler.get_default_max_lag()
         3
     """
