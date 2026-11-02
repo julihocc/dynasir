@@ -16,6 +16,7 @@ from ..analysis.evaluation import evaluate_forecast as _evaluate_forecast
 from ..analysis.visualization import visualize_results as _visualize_results
 from ..core.constants import COMPARTMENTS, FORECASTING_LEVELS, LOGIT_RATIOS
 from ..data.features import LOG_ALPHA, get_forecast_columns
+from ..data.frequency_handlers import native_frequency
 from ..data.preprocessing import reindex_data
 from .base import BaseModel, SIRDModelMixin
 from .forecasting.orchestrator import ForecastingOrchestrator
@@ -218,14 +219,15 @@ class Model(BaseModel, SIRDModelMixin):
         )
         self.training_container = training_container
 
-        # Reindex data (frequency-aware - skip reindexing for non-daily data)
-        if hasattr(data_container, "frequency") and data_container.frequency in (
-            "ME",
-            "YE",
-        ):
-            # For monthly/annual: just slice by date range, no reindexing
-            freq_to_use = data_container.frequency
-            logging.debug(f"Using frequency-aware reindexing: {freq_to_use}")
+        # Reindex data: daily data on a daily grid; every other frequency on its
+        # native index, keeping its anchor (e.g. 'W-MON'), so weekly and
+        # business-day data are not expanded to daily rows (#177)
+        container_frequency = getattr(data_container, "frequency", None) or "D"
+        if container_frequency != "D":
+            freq_to_use = native_frequency(
+                training_container.data.index, container_frequency
+            )
+            logging.debug(f"Using native reindexing: {freq_to_use}")
             self.data = reindex_data(
                 training_container.data,
                 start,
@@ -234,7 +236,7 @@ class Model(BaseModel, SIRDModelMixin):
                 warn_on_mismatch=False,
             )
         else:
-            # For daily/weekly or when no frequency info: use default (daily reindexing)
+            freq_to_use = "D"
             self.data = reindex_data(training_container.data, start, stop)
 
         # Transformed rates to forecast: logit rates, or for period-cohort
@@ -263,7 +265,7 @@ class Model(BaseModel, SIRDModelMixin):
             self.window,
             active_logit_ratios=available_logit_ratios,
             backend=forecaster,
-            frequency=self.data.index.freqstr or data_container.frequency,
+            frequency=self.data.index.freqstr or freq_to_use,
         )
         if self.steps_to_forecast is not None:
             self.var_forecasting.steps_to_forecast = self.steps_to_forecast
@@ -998,8 +1000,20 @@ class Model(BaseModel, SIRDModelMixin):
                 f"Must be one of {list(agg_funcs.keys())}"
             )
 
-        # If target frequency matches source, skip resampling
-        if modern_source_freq and modern_source_freq == modern_target_freq:
+        # If target frequency matches source, skip resampling. Compare base codes
+        # so that anchored forms ('W-MON', 'YE-DEC') match 'W' and 'YE'; resampling
+        # 'W-MON' results with 'W' would move them onto Sundays.
+        from dynasir.data.frequency_handlers import _BASE_FREQUENCY_CODES
+
+        def _base_code(freq):
+            if not freq:
+                return None
+            base = str(freq).split("-")[0].upper()
+            return _BASE_FREQUENCY_CODES.get(base, base)
+
+        if modern_source_freq and _base_code(modern_source_freq) == _base_code(
+            modern_target_freq
+        ):
             aggregated = daily_results.copy()
         else:
             resampler = daily_results.resample(modern_target_freq)

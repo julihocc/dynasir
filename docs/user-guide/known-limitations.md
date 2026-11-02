@@ -86,8 +86,3 @@ For recovery lags above one period (daily data, lag 14; weekly data, lag 2),
 incidence mode uses an approximation: the input `I` serves as the
 active-infection stock, and `results["I"]` is that stock rather than period
 incidence (#178).
-
-Weekly data is also reindexed to daily rows with forward fill, which repeats
-each weekly count on seven days and inflates `C` about seven times (#177).
-Until this is fixed, aggregate weekly incidence to monthly data, or use
-cumulative mode.

@@ -17,6 +17,57 @@ from typing import Dict, Optional, Type
 
 import pandas as pd
 
+# pandas base frequency codes mapped to DynaSIR frequency codes
+_BASE_FREQUENCY_CODES = {
+    "D": "D",
+    "B": "B",
+    "W": "W",
+    "M": "ME",
+    "ME": "ME",
+    "MS": "ME",
+    "BM": "ME",
+    "BME": "ME",
+    "BMS": "ME",
+    "Y": "YE",
+    "YE": "YE",
+    "YS": "YE",
+    "A": "YE",
+    "AS": "YE",
+    "BY": "YE",
+    "BYE": "YE",
+    "BYS": "YE",
+}
+
+
+def native_frequency(index: pd.DatetimeIndex, frequency: Optional[str] = None) -> str:
+    """
+    Return the pandas frequency string of an index, keeping its anchor.
+
+    Weekly data can be anchored on any weekday (``'W-MON'``, ``'W-SUN'``...).
+    Building a range with bare ``'W'`` (Sundays) on Monday data gives dates
+    that never match the data, so the anchored form is needed.
+
+    Args:
+        index: DatetimeIndex of the data
+        frequency: DynaSIR frequency code, used when the index has no
+            regular frequency (for example because of gaps)
+
+    Returns:
+        A pandas frequency string such as ``'W-MON'``, ``'B'`` or ``'YE-DEC'``
+    """
+    if getattr(index, "freqstr", None):
+        return index.freqstr
+    if len(index) >= 3:
+        try:
+            inferred = pd.infer_freq(index)
+        except (TypeError, ValueError):
+            inferred = None
+        if inferred:
+            return inferred
+    if frequency == "W" and len(index):
+        return f"W-{index[0].day_name()[:3].upper()}"
+    return frequency or "D"
+
 
 def make_forecast_index(
     index: pd.DatetimeIndex, steps: int, frequency: Optional[str] = None
@@ -410,20 +461,11 @@ def detect_frequency_from_index(date_index: pd.DatetimeIndex) -> str:
         inferred_freq = pd.infer_freq(date_index)
 
         if inferred_freq is not None:
-            inferred_freq_str = str(inferred_freq).upper()
-
-            # Map inferred frequency to standard codes
-            # Check Y/A BEFORE D (since 'D' appears in 'YE-DEC')
-            if "Y" in inferred_freq_str or "A" in inferred_freq_str:
-                return "YE"
-            elif "M" in inferred_freq_str:
-                return "ME"
-            elif "W" in inferred_freq_str:
-                return "W"
-            elif "B" in inferred_freq_str:
-                return "B"
-            elif "D" in inferred_freq_str:
-                return "D"
+            # Map on the base code: 'W-MON' -> 'W', 'YE-DEC' -> 'YE'. Matching
+            # substrings misread 'W-MON' as monthly and 'W-SAT' as annual.
+            base = str(inferred_freq).split("-")[0].upper()
+            if base in _BASE_FREQUENCY_CODES:
+                return _BASE_FREQUENCY_CODES[base]
 
         # Manual detection based on time deltas (average across all observations)
         deltas = (date_index[1:] - date_index[:-1]).days

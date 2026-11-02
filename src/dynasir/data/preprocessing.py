@@ -26,8 +26,10 @@ def _get_effective_window(window: int, frequency: str) -> int:
     Returns:
         Effective window size capped for frequency
     """
-    if frequency in ("D", "W"):
-        return window  # Use requested window for dense frequencies
+    if frequency == "D":
+        return window  # Use requested window for daily data
+    elif frequency == "W":  # Weekly
+        return min(window, 3)  # Cap at 3 weeks; 7 weeks blunts and delays peaks
     elif frequency == "ME":  # Monthly
         return min(window, 2)  # Cap at 2 months
     elif frequency == "YE":  # Annual
@@ -43,21 +45,23 @@ def preprocess_data(
     Preprocess raw data by applying rolling window smoothing and conditional reindexing.
 
     Behavior is frequency-aware:
-    - Daily/Weekly: Applies rolling window smoothing and reindexes to daily (current behavior)
-    - Monthly/Annual: Applies minimal smoothing and keeps native frequency (no reindexing)
+    - Daily: applies rolling window smoothing and fills missing days on a daily grid
+    - Business day, weekly, monthly, annual: applies (capped) smoothing and keeps
+      the native index (no reindexing to daily)
 
     Args:
         data: Raw input DataFrame with DatetimeIndex
         window: Rolling window size for smoothing (default: 7)
                 Automatically reduced for sparse frequencies:
-                - Daily/Weekly: uses provided window
+                - Daily/business day: uses provided window
+                - Weekly: min(window, 3)
                 - Monthly: min(window, 2)
-                - Annual: min(window, 1) - effectively no smoothing
-        frequency: Data frequency ('D', 'W', 'ME', 'YE'). If None, attempts auto-detection.
-                  Controls whether data is reindexed to daily or kept in native frequency.
+                - Annual: 1 (no smoothing)
+        frequency: Data frequency ('D', 'B', 'W', 'ME', 'YE'). If None, attempts
+                  auto-detection. Only daily data is reindexed to a daily grid.
 
     Returns:
-        Preprocessed DataFrame with native frequency preserved (or reindexed to daily for D/W)
+        Preprocessed DataFrame at its native frequency
 
     Examples:
         >>> # Daily data: normal smoothing and daily reindexing
@@ -86,11 +90,13 @@ def preprocess_data(
         smoothed_data = data.copy()
 
     # Conditional reindexing based on frequency
-    if frequency in ("D", "W"):
-        # Daily/Weekly: Reindex to daily (backward compatible)
+    if frequency == "D":
+        # Daily: fill missing days on a daily grid
         reindexed_data = reindex_data(smoothed_data, freq="D", warn_on_mismatch=True)
     else:
-        # Monthly/Annual: Skip reindexing, keep native frequency
+        # Weekly/business-day/monthly/annual: keep the native index. Weekly
+        # data used to be reindexed to daily, which repeated each weekly
+        # count on seven days (#177).
         logging.info(f"Preserving native {frequency} frequency (skipping reindexing)")
         reindexed_data = smoothed_data.ffill()
 

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The smoothing window for weekly data is capped at 3 weeks. With the default of 7, a sharp weekly outbreak's peak was delayed by about four weeks and reduced by about a fifth (#177).
 - `evaluate_forecast` reports sMAPE with the standard formula, `200 * mean(|a - f| / (|a| + |f|))`, on a 0-200 scale; points where both values are zero count as zero error. The previous formula had no factor of 2 and no absolute values in the denominator (#171).
 
 - **Incidence data with a recovery lag of at most one period (annual and monthly) is modelled as period cohorts** (#162, #163, #166). The cases of period t are the infectious group for the step to t+1, and all of them leave I by then. This is a behaviour change for annual and monthly incidence models:
@@ -28,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Weekly data is kept at its native weekly index. It was reindexed to daily rows with forward fill, so each weekly count was repeated on seven days (in incidence mode `C` was about seven times too large) and the two-week recovery lag was applied to daily rows. `Model` no longer reindexes business-day data to daily (which filled in weekends), forecast dates keep the data's weekday anchor (for example Mondays for `W-MON`), frequency detection no longer reads `W-MON` data as monthly or `W-SAT` data as annual, and `aggregate_forecast` no longer moves `W-MON` results onto Sundays (#177).
 - `run_simulations()` no longer crashes with `BrokenProcessPool` when the process pool breaks, for example in a Windows or macOS script without an `if __name__ == "__main__":` guard. It logs a warning that explains the cause and reruns the simulations sequentially (#160).
 - Legacy `dynasir.epydemics.Model` initialises again, and its results no longer fail on the SIRDV rate and compartment (#173).
 - `evaluate_forecast` works with read-only arrays (#173).
