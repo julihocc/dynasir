@@ -1,4 +1,5 @@
 import logging
+import warnings
 
 import pandas as pd
 
@@ -10,7 +11,7 @@ from .frequency_handlers import (
     detect_frequency_from_index,
     get_frequency_handler,
 )
-from .preprocessing import preprocess_data
+from .preprocessing import _get_effective_window, preprocess_data
 from .validation import validate_data
 
 
@@ -60,6 +61,7 @@ class DataContainer:
         window: int = None,
         mode: str = "cumulative",
         frequency: str = None,
+        incidence_offset: float = 0.0,
     ) -> None:
         """
         Initialize DataContainer with raw epidemiological data.
@@ -89,6 +91,12 @@ class DataContainer:
                  - 'ME': Monthly (12 observations/year)
                  - 'YE': Annual (1 observation/year) - for measles
                  Auto-detection requires DatetimeIndex with regular spacing.
+            incidence_offset: Constant added to case counts inside the rate
+                 formulas in incidence mode (default 0). Periods with zero
+                 cases make rates that divide by cases undefined; those rates
+                 are carried forward from the previous period with a warning.
+                 An offset such as 1 keeps them defined. Compartments (I, C,
+                 S, R) are not changed.
 
         Raises:
             NotDataFrameError: If raw_data is not a pandas DataFrame
@@ -124,9 +132,14 @@ class DataContainer:
                 f"Invalid mode '{mode}'. Must be 'cumulative' or 'incidence'"
             )
 
+        if incidence_offset < 0:
+            raise ValueError("incidence_offset must be >= 0")
+
         self.raw_data = raw_data
+        self._requested_window = window
         self.window = window if window is not None else settings.WINDOW_SIZE
         self.mode = mode
+        self.incidence_offset = float(incidence_offset)
 
         # Validate input data early (mode-specific)
         validate_data(self.raw_data, mode=self.mode)
@@ -156,10 +169,64 @@ class DataContainer:
             f"Using {self.handler.__class__.__name__} for {self.frequency} frequency"
         )
 
+        self._check_against_frequency()
+
         self.data = None
 
         # Run the processing pipeline
         self.process()
+        self._warn_about_undefined_rates()
+
+    def _check_against_frequency(self) -> None:
+        """Warn when the data or settings do not suit the frequency (#169)."""
+        try:
+            self.handler.validate_data(self.raw_data)
+        except ValueError as e:
+            warnings.warn(
+                f"{e}. Rates and forecasts may be unreliable.",
+                UserWarning,
+                stacklevel=3,
+            )
+
+        if self._requested_window is not None:
+            effective = _get_effective_window(self._requested_window, self.frequency)
+            if effective != self._requested_window:
+                warnings.warn(
+                    f"window={self._requested_window} is not used for "
+                    f"{self.handler.frequency_name} data; the smoothing window "
+                    f"is {effective}.",
+                    UserWarning,
+                    stacklevel=3,
+                )
+
+    def _warn_about_undefined_rates(self) -> None:
+        """Warn when rates were undefined and carried forward (#167)."""
+        n_filled = self.data.attrs.get("n_filled_rates", 0)
+        zero_dates = []
+        if self.mode == "incidence" and self.incidence_offset == 0:
+            cases = self.raw_data["I"]
+            zero_dates = [
+                d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)
+                for d in cases.index[cases == 0]
+            ]
+        if zero_dates:
+            shown = ", ".join(zero_dates[:10])
+            more = f" and {len(zero_dates) - 10} more" if len(zero_dates) > 10 else ""
+            warnings.warn(
+                f"I is zero in {len(zero_dates)} period(s) ({shown}{more}). Rates "
+                "that divide by cases are undefined next to these periods; "
+                f"{n_filled} rate value(s) were carried forward from the previous "
+                "period. Pass incidence_offset (for example 1) to keep them defined.",
+                UserWarning,
+                stacklevel=3,
+            )
+        elif n_filled:
+            warnings.warn(
+                f"{n_filled} rate value(s) were undefined (division by zero) and "
+                "were carried forward from the previous period.",
+                UserWarning,
+                stacklevel=3,
+            )
 
     def up_to(self, stop) -> "DataContainer":
         """
@@ -186,9 +253,16 @@ class DataContainer:
         return self._rebuild(self.raw_data.loc[self.raw_data.index <= stop])
 
     def _rebuild(self, raw_data: pd.DataFrame) -> "DataContainer":
-        return type(self)(
-            raw_data, window=self.window, mode=self.mode, frequency=self.frequency
-        )
+        # The full container has already warned about its data
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            return type(self)(
+                raw_data,
+                window=self._requested_window,
+                mode=self.mode,
+                frequency=self.frequency,
+                incidence_offset=self.incidence_offset,
+            )
 
     def process(self) -> None:
         """
@@ -217,7 +291,12 @@ class DataContainer:
         logging.debug(f"Preprocessed data shape: {self.data.shape}")
 
         # Apply feature engineering (mode-aware and frequency-aware)
-        self.data = feature_engineering(self.data, mode=self.mode, handler=self.handler)
+        self.data = feature_engineering(
+            self.data,
+            mode=self.mode,
+            handler=self.handler,
+            incidence_offset=self.incidence_offset,
+        )
 
         logging.debug(f"Feature engineered data columns: {self.data.columns}")
 

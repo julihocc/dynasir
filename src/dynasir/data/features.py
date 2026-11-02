@@ -161,7 +161,10 @@ def add_logit_ratios(data: pd.DataFrame, cohort: bool = False) -> pd.DataFrame:
 
 
 def feature_engineering(
-    data: pd.DataFrame, mode: str = "cumulative", handler=None
+    data: pd.DataFrame,
+    mode: str = "cumulative",
+    handler=None,
+    incidence_offset: float = 0.0,
 ) -> pd.DataFrame:
     """
     Perform feature engineering to create SIRD/SIRDV compartments and rate calculations.
@@ -181,6 +184,9 @@ def feature_engineering(
         handler: FrequencyHandler instance for frequency-specific parameters
                 (default: None - uses daily defaults). When provided, uses
                 handler.get_recovery_lag() instead of settings.RECOVERY_LAG.
+        incidence_offset: Constant added to case counts (I and next-period
+                cases dC) inside the rate formulas in incidence mode, so that
+                zero-case periods give defined rates (default 0)
 
     Returns:
         DataFrame with full feature set for epidemiological modeling
@@ -239,7 +245,10 @@ def feature_engineering(
         raise ValueError(f"Invalid mode: {mode}. Must be 'cumulative' or 'incidence'")
 
     # Calculate epidemiological rates (same for both modes)
-    engineered_data = _calculate_rates(engineered_data, has_vaccination, cohort=cohort)
+    offset = incidence_offset if mode == "incidence" else 0.0
+    engineered_data = _calculate_rates(
+        engineered_data, has_vaccination, cohort=cohort, offset=offset
+    )
 
     # R0: Basic reproduction number
     engineered_data = engineered_data.assign(
@@ -253,8 +262,14 @@ def feature_engineering(
     engineered_data = prepare_for_logit_function(engineered_data, cohort=cohort)
     engineered_data = add_logit_ratios(engineered_data, cohort=cohort)
 
+    # Count undefined rates (division by zero) that the fill below replaces.
+    # The last row has no next period, so its rates are always undefined.
+    present = [r for r in RATIOS if r in engineered_data.columns]
+    n_filled = int(engineered_data[present].iloc[:-1].isna().sum().sum())
+
     # Final cleanup: forward fill then zero fill any remaining NaN values
     engineered_data = engineered_data.ffill().fillna(0)
+    engineered_data.attrs["n_filled_rates"] = n_filled
 
     logging.debug(
         f"When completing feature engineering, columns are {engineered_data.columns}"
@@ -410,7 +425,10 @@ def _calculate_compartments_incidence(
 
 
 def _calculate_rates(
-    data: pd.DataFrame, has_vaccination: bool, cohort: bool = False
+    data: pd.DataFrame,
+    has_vaccination: bool,
+    cohort: bool = False,
+    offset: float = 0.0,
 ) -> pd.DataFrame:
     """
     Calculate epidemiological rates (alpha, beta, gamma, delta).
@@ -419,20 +437,26 @@ def _calculate_rates(
     no rate. In cohort mode (see uses_cohort_semantics) gamma is the share of
     the next cohort that dies, and beta = 1 - gamma: the whole cohort of
     period t leaves I by t+1.
+
+    ``offset`` is added to the case counts (I and dC) in the formulas, so
+    that zero-case periods give defined rates.
     """
+    cases = data.I + offset
+    new_cases = data.dC + offset
+
     # Alpha: infection rate
-    data = data.assign(alpha=(data.A * data.dC) / (data.I * data.S))
+    data = data.assign(alpha=(data.A * new_cases) / (cases * data.S))
 
     if cohort:
         # Gamma: deaths in t+1 per new case in t+1; beta: the rest of the cohort
-        data = data.assign(gamma=data.dD / data.dC)
+        data = data.assign(gamma=data.dD / new_cases)
         data = data.assign(beta=1 - data.gamma)
     else:
         # Beta: recovery rate
-        data = data.assign(beta=data.dR / data.I)
+        data = data.assign(beta=data.dR / cases)
 
         # Gamma: mortality rate
-        data = data.assign(gamma=data.dD / data.I)
+        data = data.assign(gamma=data.dD / cases)
 
     # Delta: vaccination rate (SIRDV only)
     if has_vaccination:
