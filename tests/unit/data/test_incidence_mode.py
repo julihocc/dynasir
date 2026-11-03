@@ -12,6 +12,7 @@ import pandas as pd
 import pytest
 
 from dynasir.data.features import feature_engineering
+from dynasir.data.frequency_handlers import get_frequency_handler
 
 
 class TestIncidenceModeBasics:
@@ -111,7 +112,10 @@ class TestIncidenceModeCompartments:
             index=pd.date_range("2020-01-01", periods=5, freq="YE"),
         )
 
-        result = feature_engineering(data, mode="incidence")
+        # Annual handler: without it the default 14-period lag would apply
+        result = feature_engineering(
+            data, mode="incidence", handler=get_frequency_handler("YE")
+        )
 
         # R should be non-negative
         assert "R" in result.columns
@@ -121,13 +125,15 @@ class TestIncidenceModeCompartments:
         assert all(result["R"] <= result["C"])
 
     def test_incidence_mode_calculates_a(self):
-        """Active population (A) should be S + I."""
+        """Active population (A) should be S + I (annual cohorts: I_active == I)."""
         data = pd.DataFrame(
             {"I": [100, 50, 75, 30, 45], "D": [5, 8, 10, 12, 14], "N": [10000] * 5},
             index=pd.date_range("2020-01-01", periods=5, freq="YE"),
         )
 
-        result = feature_engineering(data, mode="incidence")
+        result = feature_engineering(
+            data, mode="incidence", handler=get_frequency_handler("YE")
+        )
 
         expected_a = result["S"] + result["I"]
         assert "A" in result.columns

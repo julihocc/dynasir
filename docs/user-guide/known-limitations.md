@@ -82,7 +82,20 @@ horizon, and do not read the extremes as plausible bounds.
 
 ## Daily and Weekly Incidence Data
 
-For recovery lags above one period (daily data, lag 14; weekly data, lag 2),
-incidence mode uses an approximation: the input `I` serves as the
-active-infection stock, and `results["I"]` is that stock rather than period
-incidence (#178).
+For recovery lags above one period (daily data, lag 14; business-day data,
+lag 10; weekly data, lag 2), incidence mode keeps `I` as the period incidence
+and adds `I_active = C - C_lagged`, the cases of the last recovery-lag periods.
+The rates divide by `I_active`, `R = C_lagged - D` and `C = I_active + R + D`;
+the forecast reports `results["I"]` as incidence (comparable with the input)
+and `results["I_active"]` as the stock.
+
+- Beta is about one over the lag (for example 1/14 per day), because each
+  case stays in `I_active` for about `recovery_lag` periods.
+- In the first lag periods `C_lagged` is still zero, so `R` is negative there
+  and rates and R0 can be extreme. Start the model one lag after the first
+  date, for example `Model(container, start=first_date + 14 days)`.
+- With deaths reported as whole numbers, gamma is often zero and clipped.
+- For sharp weekly outbreaks with few cases, alpha can still reach the upper
+  clip of the logit transform in some weeks.
+- Unlike annual and monthly cohorts, `R` is not clipped at zero, so that
+  `C = I_active + R + D` holds exactly.

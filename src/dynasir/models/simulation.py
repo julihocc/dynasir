@@ -15,7 +15,7 @@ from box import Box
 from scipy.stats import gmean, hmean
 
 from ..core.config import get_settings
-from ..core.constants import COMPARTMENTS, FORECASTING_LEVELS
+from ..core.constants import ACTIVE_INFECTIONS, FORECASTING_LEVELS, RESULT_COMPARTMENTS
 from ..data.features import LOG_ALPHA
 
 
@@ -92,6 +92,11 @@ class EpidemicSimulation:
         self.importation_rate = importation_rate
         # Period-cohort incidence data (see dynasir.data.features.uses_cohort_semantics)
         self.cohort = LOG_ALPHA in getattr(data, "columns", [])
+        # Incidence data with an active-infection stock (recovery lag above one
+        # period): I is period incidence and I_active the stock (#178)
+        self.incidence_stock = not self.cohort and ACTIVE_INFECTIONS in getattr(
+            data, "columns", []
+        )
 
         # Detect if we have vaccination (delta rate present)
         self.has_vaccination = "delta" in forecasting_box
@@ -133,6 +138,9 @@ class EpidemicSimulation:
         # A and C are also needed (A used in alpha term)
         A = last_hist.A
         C = last_hist.C
+        # Infectious stock: the period's cases in cohort mode, I_active for
+        # incidence data with longer lags, I in cumulative mode
+        I_stock = last_hist[ACTIVE_INFECTIONS] if self.incidence_stock else I
 
         # Initialize V if vaccination is present
         if self.has_vaccination:
@@ -167,11 +175,16 @@ class EpidemicSimulation:
 
         n_steps = len(self.forecasting_interval)
 
-        # Pre-allocate result arrays
-        # SIRD: A, C, S, I, R, D, alpha, beta, gamma (9 columns)
-        # SIRDV: A, C, S, I, R, D, V, alpha, beta, gamma, delta (11 columns)
-        n_cols = 11 if self.has_vaccination else 9
-        results = np.zeros((n_steps, n_cols))
+        columns = ["A", "C", "S", "I"]
+        if self.cohort or self.incidence_stock:
+            columns.append(ACTIVE_INFECTIONS)
+        columns += ["R", "D"]
+        if self.has_vaccination:
+            columns.append("V")
+        columns += ["alpha", "beta", "gamma"]
+        if self.has_vaccination:
+            columns.append("delta")
+        results = np.zeros((n_steps, len(columns)))
 
         for i in range(n_steps):
             # Rates of the step that ends at forecasting_interval[i]
@@ -182,7 +195,7 @@ class EpidemicSimulation:
 
             # Force of Infection = alpha * I / A + epsilon (importation)
             # New Infections = FoI * S
-            force_of_infection = (alpha * I / A) + self.importation_rate
+            force_of_infection = (alpha * I_stock / A) + self.importation_rate
             infection = force_of_infection * S
             vaccination = delta * S if self.has_vaccination else 0.0
 
@@ -192,61 +205,56 @@ class EpidemicSimulation:
                 infection = min(infection, S - vaccination)
                 death = gamma * infection
                 new_I = infection
+                new_stock = infection
                 new_R = R + I - death
+                new_C = None  # set below from the compartments
+            elif self.incidence_stock:
+                # I is the period's new cases; I_active is the stock that
+                # recovers and dies
+                recovery = beta * I_stock
+                death = gamma * I_stock
+                new_stock = I_stock + infection - recovery - death
+                new_I = infection
+                new_R = R + recovery
+                new_C = C + infection
             else:
                 recovery = beta * I
                 death = gamma * I
                 # I(t) = I(t-1) + infection - recovery - death
                 new_I = I + infection - recovery - death
+                new_stock = new_I
                 new_R = R + recovery
+                new_C = None  # set below from the compartments
 
             new_S = S - infection - vaccination
             new_V = V + vaccination if self.has_vaccination else 0
             new_D = D + death
 
-            new_C = new_I + new_R + new_D
-            new_A = new_S + new_I
+            if new_C is None:
+                new_C = new_I + new_R + new_D
+            new_A = new_S + new_stock
 
-            # Store results
-            results[i, 0] = new_A
-            results[i, 1] = new_C
-            results[i, 2] = new_S
-            results[i, 3] = new_I
-            results[i, 4] = new_R
-            results[i, 5] = new_D
-            if self.has_vaccination:
-                results[i, 6] = new_V
-                results[i, 7] = alpha
-                results[i, 8] = beta
-                results[i, 9] = gamma
-                results[i, 10] = delta
-            else:
-                results[i, 6] = alpha
-                results[i, 7] = beta
-                results[i, 8] = gamma
+            row = {
+                "A": new_A,
+                "C": new_C,
+                "S": new_S,
+                "I": new_I,
+                ACTIVE_INFECTIONS: new_stock,
+                "R": new_R,
+                "D": new_D,
+                "V": new_V,
+                "alpha": alpha,
+                "beta": beta,
+                "gamma": gamma,
+                "delta": delta,
+            }
+            results[i] = [row[column] for column in columns]
 
             # Update state for next iteration
             S, I, R, D, A, C = new_S, new_I, new_R, new_D, new_A, new_C
+            I_stock = new_stock
             if self.has_vaccination:
                 V = new_V
-
-        # Create DataFrame from results
-        if self.has_vaccination:
-            columns = [
-                "A",
-                "C",
-                "S",
-                "I",
-                "R",
-                "D",
-                "V",
-                "alpha",
-                "beta",
-                "gamma",
-                "delta",
-            ]
-        else:
-            columns = ["A", "C", "S", "I", "R", "D", "alpha", "beta", "gamma"]
 
         simulation_df = pd.DataFrame(
             results, index=self.forecasting_interval, columns=columns
@@ -451,7 +459,7 @@ class EpidemicSimulation:
             ][FORECASTING_LEVELS[0]]
 
         available_compartments = [
-            c for c in COMPARTMENTS if c in sample_simulation.columns
+            c for c in RESULT_COMPARTMENTS if c in sample_simulation.columns
         ]
 
         for compartment in available_compartments:

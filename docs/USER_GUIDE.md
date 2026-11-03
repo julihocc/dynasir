@@ -490,21 +490,29 @@ model.forecast(steps=5)
 model.run_simulations(n_jobs=1)
 model.generate_result()
 
-# Results include both I and C
-print(model.results['I'])  # Incident (can vary)
-print(model.results['C'])  # Cumulative (monotonic)
+# Results include I (period incidence), I_active (active infections) and C
+print(model.results['I'])         # Incident cases per period (can vary)
+print(model.results['I_active'])  # Currently infected
+print(model.results['C'])         # Cumulative (monotonic)
 ```
 
 ### How It Works
 
 1. **Data Processing:**
    - Incidence mode: `I` preserved, `C = cumsum(I)` generated
-   - Cumulative mode: `C` preserved, `I = diff(C)` generated
+   - Cumulative mode: `C` preserved, `I = C - C_lagged` (active infections) generated
 
 2. **Feature Engineering:**
-   - Same SIRD compartments for both modes
-   - Same rate formulas: `alpha`, `beta`, `gamma`
-   - Same VAR forecasting approach
+   - In incidence mode `I` is always period incidence, and `I_active` is the
+     active-infection stock that the rates divide by:
+     - annual and monthly data (recovery lag of at most one period): each
+       period's cases are the infectious cohort, so `I_active = I`;
+     - daily, business-day and weekly data: `I_active = C - C_lagged`, the
+       cases of the last recovery-lag periods, exactly as cumulative mode's `I`.
+   - `C = I_active + R + D` in every row; forecasts report `I` as incidence
+     and `I_active` as the stock. Aggregate `I` with `sum` and `I_active`
+     with `mean` or `last`.
+   - Same VAR forecasting approach in both modes
 
 3. **Mode Propagation:**
    ```python
@@ -534,7 +542,7 @@ print("C monotonic:", all(container.data['C'].diff() >= 0))
 
 ### See Also
 
-- **Notebook**: `examples/notebooks/07_incidence_mode_measles.ipynb`
+- **Notebook**: `examples/notebooks/06_incidence_mode_measles.ipynb`
 - **Tests**: `tests/integration/test_incidence_mode_workflow.py`
 
 ---

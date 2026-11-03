@@ -13,7 +13,7 @@ import pandas as pd
 from dynasir.core.config import get_settings
 
 # Import constants from the core module
-from ..core.constants import LOGIT_RATIOS, RATIOS
+from ..core.constants import ACTIVE_INFECTIONS, LOGIT_RATIOS, RATIOS
 
 # Log-transformed infection rate used in cohort mode (alpha can exceed 1)
 LOG_ALPHA = "log_alpha"
@@ -353,6 +353,16 @@ def _calculate_compartments_incidence(
     """
     Calculate SIRD compartments from incident cases I.
 
+    ``I`` stays the period incidence. The active-infection stock is
+    ``I_active``:
+
+    - cohort mode (recovery lag <= 1 period): each period's cases are the
+      whole infectious cohort, so ``I_active = I`` and ``R = C - I - D``;
+    - longer lags (daily, weekly, business-day data): ``C = cumsum(I)`` and the
+      compartments follow cumulative mode, ``R = C_lagged - D`` and
+      ``I_active = C - C_lagged``, the cases of the last ``recovery_lag``
+      periods. ``C = I_active + R + D`` holds in every row.
+
     Args:
         data: DataFrame with I, D, N columns
         has_vaccination: Whether V (vaccination) column is present
@@ -361,38 +371,40 @@ def _calculate_compartments_incidence(
         cohort: If True, every earlier cohort has been removed by period t,
             so R = C - I - D (see uses_cohort_semantics)
     """
-    import numpy as np
-
     # Use provided recovery_lag or default from settings
     lag = recovery_lag if recovery_lag is not None else settings.RECOVERY_LAG
 
-    # I is already present (incident cases per period)
-    # Need to calculate C, R, S, A
+    incidence = data["I"]
+
+    if not cohort:
+        # Rolling stock of the last `lag` periods, as in cumulative mode (#178)
+        cumulative = data.drop(columns=["I"]).assign(C=incidence.cumsum())
+        data = _calculate_compartments_cumulative(
+            cumulative, has_vaccination, settings, lag
+        )
+        data = data.rename(columns={"I": ACTIVE_INFECTIONS})
+        # C - C_lagged leaves rounding error (about 1e-12) where no case is
+        # active; set it to zero so that undefined rates are detected
+        stock = data[ACTIVE_INFECTIONS]
+        stock = stock.where(stock.abs() > 1e-9 * data["C"].abs().clip(lower=1), 0.0)
+        data = data.assign(
+            **{ACTIVE_INFECTIONS: stock},
+            R=data["C"] - stock - data["D"],
+        )
+        data = data.assign(A=data["S"] + data[ACTIVE_INFECTIONS])
+        data = data.assign(dA=-data["A"].diff(periods=-1))
+        data = data.assign(dR=-data["R"].diff(periods=-1))
+        data = data.assign(dI_active=-data[ACTIVE_INFECTIONS].diff(periods=-1))
+        data = data.drop(columns=["dI"])
+        data.insert(0, "I", incidence)
+        data = data.assign(dI=-data["I"].diff(periods=-1))
+        return data
 
     # C: Cumulative cases (cumsum of incident)
-    data = data.assign(C=data["I"].cumsum())
+    data = data.assign(C=incidence.cumsum())
 
-    # R: Recovered (cumulative incident minus deaths, lagged)
-    # Support fractional lags via interpolation
-    if cohort:
-        # All cohorts before t have been removed: R_t = C_(t-1) - D_t
-        recovered_cumulative = data["C"] - data["I"]
-    elif lag == int(lag):
-        # Integer lag - use standard shift
-        recovered_cumulative = data["I"].shift(int(lag)).fillna(0).cumsum()
-    else:
-        # Fractional lag - use weighted interpolation
-        lag_floor = int(np.floor(lag))
-        lag_ceil = int(np.ceil(lag))
-        weight = lag - lag_floor
-
-        shifted_floor = data["I"].shift(lag_floor).fillna(0)
-        shifted_ceil = data["I"].shift(lag_ceil).fillna(0)
-
-        # Linear interpolation between floor and ceil
-        recovered_incident = (1 - weight) * shifted_floor + weight * shifted_ceil
-        recovered_cumulative = recovered_incident.cumsum()
-
+    # All cohorts before t have been removed: R_t = C_(t-1) - D_t
+    recovered_cumulative = data["C"] - data["I"]
     data = data.assign(R=(recovered_cumulative - data["D"]).clip(lower=0))
 
     # S: Susceptible population
@@ -403,8 +415,10 @@ def _calculate_compartments_incidence(
         # SIRD: S = N - C (simplified, assumes no recovered flow back to S)
         data = data.assign(S=data["N"] - data["C"])
 
+    # The period's cases are the infectious cohort
+    data = data.assign(**{ACTIVE_INFECTIONS: data["I"]})
+
     # A: At-risk population (S + I)
-    # For annual data, I represents average active during period
     data = data.assign(A=data["S"] + data["I"])
 
     # Calculate forward differences: dX_t = X_(t+1) - X_t
@@ -441,7 +455,9 @@ def _calculate_rates(
     ``offset`` is added to the case counts (I and dC) in the formulas, so
     that zero-case periods give defined rates.
     """
-    cases = data.I + offset
+    # Infectious stock: I_active in incidence mode, I in cumulative mode
+    stock = data[ACTIVE_INFECTIONS] if ACTIVE_INFECTIONS in data.columns else data.I
+    cases = stock + offset
     new_cases = data.dC + offset
 
     # Alpha: infection rate

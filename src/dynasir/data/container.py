@@ -120,7 +120,7 @@ class DataContainer:
             >>> print(f"Mode: {container.mode}, Frequency: {container.frequency}")
 
         See Also:
-            - examples/notebooks/07_incidence_mode_measles.ipynb
+            - examples/notebooks/06_incidence_mode_measles.ipynb
             - docs/USER_GUIDE.md: Incidence Mode and Multi-frequency sections
         """
 
@@ -203,8 +203,14 @@ class DataContainer:
         """Warn when rates were undefined and carried forward (#167)."""
         n_filled = self.data.attrs.get("n_filled_rates", 0)
         zero_dates = []
-        if self.mode == "incidence" and self.incidence_offset == 0:
-            cases = self.raw_data["I"]
+        stock_name = "I"
+        if self.mode == "incidence" and self.incidence_offset == 0 and n_filled:
+            # Rates divide by the infectious stock: the period's cases for
+            # annual and monthly data, I_active (cases of the last recovery-lag
+            # periods) for daily and weekly data
+            if "I_active" in self.data.columns and "log_alpha" not in self.data:
+                stock_name = "I_active"
+            cases = self.data[stock_name]
             zero_dates = [
                 d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)
                 for d in cases.index[cases == 0]
@@ -213,7 +219,7 @@ class DataContainer:
             shown = ", ".join(zero_dates[:10])
             more = f" and {len(zero_dates) - 10} more" if len(zero_dates) > 10 else ""
             warnings.warn(
-                f"I is zero in {len(zero_dates)} period(s) ({shown}{more}). Rates "
+                f"{stock_name} is zero in {len(zero_dates)} period(s) ({shown}{more}). Rates "
                 "that divide by cases are undefined next to these periods; "
                 f"{n_filled} rate value(s) were carried forward from the previous "
                 "period. Pass incidence_offset (for example 1) to keep them defined.",

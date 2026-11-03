@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Incidence data with a recovery lag above one period (daily, business-day and weekly) keeps `I` as period incidence and adds `I_active`**, the active-infection stock `C - C_lagged` (the cases of the last recovery-lag periods, as cumulative mode's `I`) (#178). Before, the input incidence was used as the stock, so `C` did not equal `I + R + D` and the infection rate was clipped to one in about half of the daily rows; it now saturates in under 1% in a 150-day example.
+  - Rates divide by `I_active`, `R = C_lagged - D` (not clipped, so `C = I_active + R + D` holds; annual and monthly cohorts still clip `R` at zero), and `A = S + I_active`.
+  - The simulation reports `results["I"]` as the period's new cases, comparable with the input, and `results["I_active"]` as the stock. `C` grows by the new cases, so it no longer jumps at the first forecast step.
+  - Annual and monthly results also include `I_active`, equal to `I`. The new constants `ACTIVE_INFECTIONS` and `RESULT_COMPARTMENTS` list it; `COMPARTMENTS` is unchanged.
 - The smoothing window for weekly data is capped at 3 weeks. With the default of 7, a sharp weekly outbreak's peak was delayed by about four weeks and reduced by about a fifth (#177).
 - `evaluate_forecast` reports sMAPE with the standard formula, `200 * mean(|a - f| / (|a| + |f|))`, on a 0-200 scale; points where both values are zero count as zero error. The previous formula had no factor of 2 and no absolute values in the denominator (#171).
 
@@ -22,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `gamma_t` is the share of the next cohort that dies (`dD/dC`), and `beta = 1 - gamma` is derived, not forecast (no `logit_beta` column). Its levels mirror gamma's.
   - `R = C - I - D`, and `calculate_R0()` equals alpha, which is close to the growth ratio `I_(t+1)/I_t`: R0 > 1 now precedes rises. With annual counts this is a ratio between successive years, not a per-generation reproduction number.
   - The simulation reports period incidence in `results["I"]`, comparable with the input `I`. Beta does not enter the cohort simulation, so the beta level in a scenario name does not change its result, and `forecast_R0()` returns alpha for every scenario.
-  - In incidence mode at every frequency, `dC` is now a forward difference (`I_(t+1)`), as in cumulative mode. Lags above one period (daily and weekly incidence) keep the earlier approximation (#178).
+  - In incidence mode at every frequency, `dC` is now a forward difference (`I_(t+1)`), as in cumulative mode.
 - The rate in row t describes the step from t to t+1. `Model` therefore fits the rates of every training date except the last (whose step leaves the training window), forecast rate i drives forecast step i, and `calculate_R0()` excludes the last training date. A forecast rate labelled with date d is the rate of the step ending at d.
 
 - `run_simulations()` now runs sequentially by default (`PARALLEL_SIMULATIONS` defaults to `False`). Each scenario takes milliseconds, and starting worker processes made the default call about 200 times slower on Windows (about 5 s instead of 0.02 s for 27 SIRD scenarios). Set `PARALLEL_SIMULATIONS=true` or pass `n_jobs>1` to use a process pool (#160).

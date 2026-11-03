@@ -109,7 +109,7 @@ class Model(BaseModel, SIRDModelMixin):
 
     See Also:
         - DataContainer: Data preprocessing and mode selection
-        - examples/notebooks/07_incidence_mode_measles.ipynb: Incidence mode tutorial
+        - examples/notebooks/06_incidence_mode_measles.ipynb: Incidence mode tutorial
         - examples/notebooks/05_multi_backend_comparison.ipynb: Backend comparison
         - docs/USER_GUIDE.md: Comprehensive usage guide
     """
@@ -567,6 +567,7 @@ class Model(BaseModel, SIRDModelMixin):
                 "C",
                 "S",
                 "I",
+                "I_active",
                 "R",
                 "D",
             ]
@@ -740,6 +741,10 @@ class Model(BaseModel, SIRDModelMixin):
               beta + gamma = 1 and R₀(t) = α(t), which is close to the growth
               ratio I(t+1)/I(t). With annual counts it is a ratio between
               successive years, not a per-generation reproduction number.
+            - For incidence data with a recovery lag above one period (daily,
+              weekly), rates divide by the active stock I_active, so beta is
+              about 1/lag. In the first lag periods C_lagged is still zero, R is
+              negative and R₀ can be extreme; start the model one lag later.
             - Use forecast_R0() for forecasted reproduction numbers
             - High variability in R₀ reflects changing interventions and behavior
         """
@@ -912,11 +917,11 @@ class Model(BaseModel, SIRDModelMixin):
         results at coarser frequency (e.g., annual cases from daily model).
 
         Args:
-            compartment_code: Compartment to aggregate (C, I, R, D, V)
+            compartment_code: Compartment to aggregate (C, I, I_active, R, D, V)
             target_frequency: Target frequency ('W', 'M', 'Y')
             aggregate_func: Aggregation function:
-                - 'sum': Sum values (for incident cases, deaths)
-                - 'mean': Average values (for prevalence)
+                - 'sum': Sum values (for incident cases: ``I`` in incidence mode)
+                - 'mean': Average values (for prevalence, e.g. ``I_active``)
                 - 'last': Last value in period (for cumulative totals)
                 - 'max': Maximum value (for peak detection)
                 - 'min': Minimum value
