@@ -1048,8 +1048,17 @@ class Model(BaseModel, SIRDModelMixin):
                 f"Must be one of {list(agg_funcs.keys())}"
             )
 
-        # If target frequency matches source, skip resampling
-        if modern_source_freq and modern_source_freq == modern_target_freq:
+        # If target frequency matches source, skip resampling. Compare base codes
+        # so that anchored forms ('W-MON', 'YE-DEC') match 'W' and 'YE';
+        # resampling 'W-MON' results with 'W' would move them onto Sundays.
+        from dynasir.data.frequency_handlers import base_frequency_code
+
+        def _base(freq):
+            return base_frequency_code(freq) or freq
+
+        if modern_source_freq and _base(modern_source_freq) == _base(
+            modern_target_freq
+        ):
             aggregated = daily_results.copy()
         else:
             resampler = daily_results.resample(modern_target_freq)

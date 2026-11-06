@@ -26,8 +26,8 @@ def _get_effective_window(window: int, frequency: str) -> int:
     Returns:
         Effective window size capped for frequency
     """
-    if frequency in ("D", "W"):
-        return window  # Use requested window for dense frequencies
+    if frequency == "W":  # Weekly
+        return min(window, 3)  # Cap at 3 weeks; 7 weeks blunts and delays peaks
     elif frequency == "ME":  # Monthly
         return min(window, 2)  # Cap at 2 months
     elif frequency == "QE":  # Quarterly

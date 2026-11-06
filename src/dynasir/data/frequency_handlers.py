@@ -17,6 +17,48 @@ from typing import Dict, Optional, Type
 
 import pandas as pd
 
+# pandas base frequency codes mapped to DynaSIR frequency codes
+_BASE_FREQUENCY_CODES = {
+    "D": "D",
+    "B": "B",
+    "W": "W",
+    "M": "ME",
+    "ME": "ME",
+    "MS": "ME",
+    "BM": "ME",
+    "BME": "ME",
+    "BMS": "ME",
+    "Q": "QE",
+    "QE": "QE",
+    "QS": "QE",
+    "BQ": "QE",
+    "BQE": "QE",
+    "BQS": "QE",
+    "Y": "YE",
+    "YE": "YE",
+    "YS": "YE",
+    "A": "YE",
+    "AS": "YE",
+    "BY": "YE",
+    "BYE": "YE",
+    "BYS": "YE",
+    "BA": "YE",
+    "BAS": "YE",
+}
+
+
+def base_frequency_code(freq) -> Optional[str]:
+    """
+    Map a pandas frequency string to its DynaSIR code, ignoring the anchor.
+
+    ``'W-MON'`` gives ``'W'``, ``'QS-OCT'`` gives ``'QE'`` and ``'YE-DEC'``
+    gives ``'YE'``. Returns None for an empty or unknown code.
+    """
+    if not freq:
+        return None
+    base = str(freq).split("-")[0].upper()
+    return _BASE_FREQUENCY_CODES.get(base)
+
 
 def make_forecast_index(
     index: pd.DatetimeIndex, steps: int, frequency: Optional[str] = None
@@ -444,23 +486,11 @@ def detect_frequency_from_index(date_index: pd.DatetimeIndex) -> str:
         inferred_freq = pd.infer_freq(date_index)
 
         if inferred_freq is not None:
-            inferred_freq_str = str(inferred_freq).upper()
-
-            # Map inferred frequency to standard codes
-            # Check Y/A BEFORE D (since 'D' appears in 'YE-DEC').
-            # Check Q before any later letter test: 'QE-DEC' is quarterly.
-            if "Y" in inferred_freq_str or "A" in inferred_freq_str:
-                return "YE"
-            elif "Q" in inferred_freq_str:
-                return "QE"
-            elif "M" in inferred_freq_str:
-                return "ME"
-            elif "W" in inferred_freq_str:
-                return "W"
-            elif "B" in inferred_freq_str:
-                return "B"
-            elif "D" in inferred_freq_str:
-                return "D"
+            # Map on the base code: 'W-MON' -> 'W', 'QS-OCT' -> 'QE'. Matching
+            # substrings misread 'W-MON' as monthly and 'W-SAT' as annual.
+            base = base_frequency_code(inferred_freq)
+            if base is not None:
+                return base
 
         # Manual detection based on time deltas (average across all observations)
         deltas = (date_index[1:] - date_index[:-1]).days
