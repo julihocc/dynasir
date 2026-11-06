@@ -356,6 +356,20 @@ class TestConvenienceFunctions:
         # Lag 14/91 is below one period, so only the last row is left out.
         assert len(model.logit_ratios_values) == 7
 
+        # Quarter-start dates must stay quarter-start. Reindexing them with
+        # the canonical code QE moves every timestamp and drops the cases.
+        qs_dates = pd.date_range("2018-01-01", periods=8, freq="QS")
+        qs_raw = pd.DataFrame(
+            {"I": [10.0] * 8, "D": [0.0] * 8, "N": [1e6] * 8},
+            index=qs_dates,
+        )
+        qs_container = DataContainer(qs_raw, mode="incidence", window=1)
+        assert qs_container.frequency == "QE"
+        assert qs_container.handler.get_recovery_lag() == pytest.approx(14 / 91)
+        qs_model = Model(qs_container)
+        assert list(qs_model.data.index) == list(qs_dates)
+        assert qs_model.data["I"].sum() == 80
+
     def test_detect_frequency_insufficient_data(self):
         """Should raise error with insufficient data."""
         dates = pd.date_range("2020-01-01", periods=1, freq="D")

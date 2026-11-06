@@ -109,6 +109,41 @@ def preprocess_data(
     return reindexed_data
 
 
+def _period_family(freq: str) -> str:
+    """Group pandas frequency aliases that share a period but not an anchor."""
+    code = str(freq).upper()
+    if code.startswith("Q"):
+        return "Q"
+    if code.startswith(("ME", "MS", "M", "SME", "SMS", "CBM", "BME", "BMS")):
+        return "M"
+    if code.startswith(("YE", "YS", "Y", "A", "BA", "BY")):
+        return "Y"
+    if code.startswith("W"):
+        return "W"
+    if code.startswith("B") or code == "C":
+        return "B"
+    if code.startswith("D"):
+        return "D"
+    return code
+
+
+def _anchor_freq(index, freq: str) -> str:
+    """Keep the index anchor when the requested frequency is the same period.
+
+    The quarterly handler code is ``QE``, but a quarter-start index must not
+    be moved onto quarter-end dates. The same applies to month-start and
+    year-start series.
+    """
+    if not isinstance(index, pd.DatetimeIndex) or len(index) < 2:
+        return freq
+    freqstr = index.freqstr
+    if not freqstr:
+        freqstr = pd.infer_freq(index)
+    if freqstr and _period_family(freqstr) == _period_family(freq):
+        return str(freqstr)
+    return freq
+
+
 def reindex_data(
     data: pd.DataFrame,
     start: Optional[str] = None,
@@ -193,6 +228,7 @@ def reindex_data(
         logging.debug(
             f"Reindex data from {start_date} to {stop_date} with freq={freq}, shape: {data.shape}"
         )
+        freq = _anchor_freq(data.index, freq)
         reindex = pd.date_range(start=start_date, end=stop_date, freq=freq)
         reindexed_data = data.reindex(reindex)
     except Exception as e:

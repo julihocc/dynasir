@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Quarterly data is detected as quarterly (`QE`), with a recovery lag of 14/91 and a four-lag default. It was labelled annual because a quarter is about 91 days (#186).
+- Quarterly data is detected as quarterly (`QE`), with a recovery lag of 14/91 and a four-lag default. It was labelled annual because a quarter is about 91 days (#186). A quarter-start index stays on its quarter-start dates instead of being moved onto quarter-end.
 - A missing period in incidence data is left undefined and reported, instead of being filled with the previous period's cases. Cumulative series still carry the last value forward (#187).
 - The Prophet backend receives the training dates and forecasts on that frequency. It no longer builds a synthetic daily index for weekly, monthly, quarterly, or annual rates (#188).
 - Rates from the recovery-lag warm-up are left out of model fitting when the lag is longer than one period. Those first rows have no lagged cumulative cases yet, so beta collapses and R0 is extreme. A lag of at most one period, including annual and monthly cohorts, is unchanged (#184).
