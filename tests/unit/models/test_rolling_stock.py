@@ -1,9 +1,12 @@
-"""Rolling infectious stock for incidence lags above one period (#178)."""
+"""Active-infection stock for incidence lags above one period (#178).
+
+``I`` stays the weekly incidence; ``I_active`` is the stock of the last two weeks.
+"""
 
 import numpy as np
 import pandas as pd
 
-from dynasir import DataContainer, Model
+from dynasir import ACTIVE_INFECTIONS, DataContainer, Model
 from dynasir.core.constants import FORECASTING_LEVELS
 from dynasir.models.simulation import EpidemicSimulation
 
@@ -24,14 +27,14 @@ def test_weekly_stock_is_the_last_two_cohorts():
     data = DataContainer(raw, mode="incidence", frequency="W", window=1).data
 
     expected = raw["I"] + raw["I"].shift(1).fillna(0)
-    np.testing.assert_allclose(data["incidence"], raw["I"])
-    np.testing.assert_allclose(data["I"], expected)
+    np.testing.assert_allclose(data["I"], raw["I"])
+    np.testing.assert_allclose(data[ACTIVE_INFECTIONS], expected)
     # Alpha above 1 stays on the log scale, and beta is still its own rate.
     assert "log_alpha" in data.columns
     assert "logit_beta" in data.columns
     assert "logit_alpha" not in data.columns
-    growth = data["incidence"].shift(-1)
-    expected_alpha = data["A"] * growth / (data["I"] * data["S"])
+    growth = data["I"].shift(-1)
+    expected_alpha = data["A"] * growth / (data[ACTIVE_INFECTIONS] * data["S"])
     np.testing.assert_allclose(
         data["alpha"].iloc[:-1], expected_alpha.iloc[:-1], rtol=1e-6
     )
@@ -58,7 +61,7 @@ def test_weekly_replay_reports_new_cases():
     )
 
     np.testing.assert_allclose(
-        simulated["I"], data.loc[dates, "incidence"], rtol=1e-6, atol=1e-6
+        simulated["I"], data.loc[dates, "I"], rtol=1e-6, atol=1e-6
     )
     np.testing.assert_allclose(
         simulated["C"], data.loc[dates, "C"], rtol=1e-6, atol=1e-4
