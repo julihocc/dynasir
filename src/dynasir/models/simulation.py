@@ -25,7 +25,8 @@ def _warn_if_flat_median_incidence_forecast(
     if "I" not in results or "I" not in data:
         return
 
-    historical = data["I"].dropna().to_numpy()
+    observed = data["incidence"] if "incidence" in data.columns else data["I"]
+    historical = observed.dropna().to_numpy()
     median_forecast = results["I"]["median"].to_numpy()
     if (
         len(historical) > 1
@@ -191,27 +192,29 @@ class EpidemicSimulation:
                 # I, and the new infections form the next period's cohort.
                 infection = min(infection, S - vaccination)
                 death = gamma * infection
-                new_I = infection
+                state_I = infection
                 new_R = R + I - death
             else:
+                # I is the rolling stock. The cohort that reaches the recovery
+                # lag leaves; the reported I is this step's new cases.
                 recovery = beta * I
                 death = gamma * I
-                # I(t) = I(t-1) + infection - recovery - death
-                new_I = I + infection - recovery - death
+                state_I = I + infection - recovery - death
                 new_R = R + recovery
 
             new_S = S - infection - vaccination
             new_V = V + vaccination if self.has_vaccination else 0
             new_D = D + death
 
-            new_C = new_I + new_R + new_D
-            new_A = new_S + new_I
+            new_C = state_I + new_R + new_D
+            new_A = new_S + state_I
 
             # Store results
             results[i, 0] = new_A
             results[i, 1] = new_C
             results[i, 2] = new_S
-            results[i, 3] = new_I
+            # Report period incidence, not the infectious stock (#178).
+            results[i, 3] = infection if not self.cohort else state_I
             results[i, 4] = new_R
             results[i, 5] = new_D
             if self.has_vaccination:
@@ -226,7 +229,7 @@ class EpidemicSimulation:
                 results[i, 8] = gamma
 
             # Update state for next iteration
-            S, I, R, D, A, C = new_S, new_I, new_R, new_D, new_A, new_C
+            S, I, R, D, A, C = new_S, state_I, new_R, new_D, new_A, new_C
             if self.has_vaccination:
                 V = new_V
 

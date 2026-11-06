@@ -366,33 +366,35 @@ def _calculate_compartments_incidence(
     # Use provided recovery_lag or default from settings
     lag = recovery_lag if recovery_lag is not None else settings.RECOVERY_LAG
 
-    # I is already present (incident cases per period)
-    # Need to calculate C, R, S, A
+    # I is the incident cases of the period. Keep that series: for a lag
+    # longer than one period the infectious compartment becomes the rolling
+    # stock, and the original counts are what a forecast is compared with.
+    incidence = data["I"].copy()
 
     # C: Cumulative cases (cumsum of incident)
-    data = data.assign(C=data["I"].cumsum())
+    data = data.assign(C=incidence.cumsum(), incidence=incidence)
 
-    # R: Recovered (cumulative incident minus deaths, lagged)
-    # Support fractional lags via interpolation
+    # People who have already left the infectious class, before subtracting deaths.
+    # A lag above one period keeps the last `lag` cohorts: stock = C_t - C_(t-lag).
     if cohort:
         # All cohorts before t have been removed: R_t = C_(t-1) - D_t
-        recovered_cumulative = data["C"] - data["I"]
+        recovered_cumulative = data["C"] - incidence
     elif lag == int(lag):
-        # Integer lag - use standard shift
-        recovered_cumulative = data["I"].shift(int(lag)).fillna(0).cumsum()
+        recovered_cumulative = incidence.shift(int(lag)).fillna(0).cumsum()
     else:
         # Fractional lag - use weighted interpolation
         lag_floor = int(np.floor(lag))
         lag_ceil = int(np.ceil(lag))
         weight = lag - lag_floor
 
-        shifted_floor = data["I"].shift(lag_floor).fillna(0)
-        shifted_ceil = data["I"].shift(lag_ceil).fillna(0)
+        shifted_floor = incidence.shift(lag_floor).fillna(0)
+        shifted_ceil = incidence.shift(lag_ceil).fillna(0)
 
-        # Linear interpolation between floor and ceil
         recovered_incident = (1 - weight) * shifted_floor + weight * shifted_ceil
         recovered_cumulative = recovered_incident.cumsum()
 
+    # I is the active stock. For a one-period cohort it equals the incidence.
+    data = data.assign(I=(data["C"] - recovered_cumulative).clip(lower=0))
     data = data.assign(R=(recovered_cumulative - data["D"]).clip(lower=0))
 
     # S: Susceptible population

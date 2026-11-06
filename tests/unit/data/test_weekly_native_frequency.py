@@ -41,7 +41,10 @@ class TestWeeklyNativeFrequency:
         assert container.frequency == "W"
         assert len(container.data) == 30
         assert container.data["C"].iloc[-1] == 300.0
-        assert np.allclose(container.data["I"].to_numpy(), raw["I"].to_numpy())
+        assert np.allclose(container.data["incidence"].to_numpy(), raw["I"].to_numpy())
+        # Lag 2: the stock holds this week and the previous one.
+        assert container.data["I"].iloc[0] == 10.0
+        assert container.data["I"].iloc[1:].eq(20.0).all()
         steps = container.data.index.to_series().diff().dropna()
         assert steps.median() == pd.Timedelta(days=7)
         # I.shift(2).cumsum() on a constant 10: the last row has 28 recovered cases.
