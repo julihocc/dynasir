@@ -82,9 +82,21 @@ horizon, and do not read the extremes as plausible bounds.
 
 ## Daily and Weekly Incidence Data
 
-For a recovery lag longer than one period (daily data, lag 14; weekly data,
-lag 2), the infectious compartment is the rolling stock `C_t - C_(t-lag)`.
-The input counts are kept in `incidence`, and `results["I"]` is the new cases
-of each period (#178). Weekly counts stay on the weekly index (#177). Alpha
-is forecast on the log scale, including when it exceeds 1, without treating
-the series as a one-period cohort (#185).
+For a recovery lag longer than one period (daily data, lag 14; business-day
+data, lag 10; weekly data, lag 2), incidence mode keeps `I` as the period
+incidence and adds `I_active = C - C_lagged`, the cases of the last
+recovery-lag periods. The rates divide by `I_active`, `R = C_lagged - D` and
+`C = I_active + R + D`; the forecast reports `results["I"]` as incidence
+(comparable with the input) and `results["I_active"]` as the stock (#178).
+Weekly counts stay on the weekly index (#177). Alpha is forecast on the log
+scale, including when it exceeds 1, without treating the series as a
+one-period cohort (#185).
+
+- Beta is about one over the lag (for example 1/14 per day), because each
+  case stays in `I_active` for about `recovery_lag` periods.
+- In the first lag periods `C_lagged` is still zero, so `R` is negative and
+  the rates are extreme there. Those warm-up rows are left out of fitting
+  (#184).
+- With deaths reported as whole numbers, gamma is often zero and clipped.
+- Unlike annual and monthly cohorts, `R` is not clipped at zero, so that
+  `C = I_active + R + D` holds exactly.

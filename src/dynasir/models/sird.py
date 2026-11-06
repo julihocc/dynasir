@@ -961,11 +961,11 @@ class Model(BaseModel, SIRDModelMixin):
         results at coarser frequency (e.g., annual cases from daily model).
 
         Args:
-            compartment_code: Compartment to aggregate (C, I, R, D, V)
+            compartment_code: Compartment to aggregate (C, I, I_active, R, D, V)
             target_frequency: Target frequency ('W', 'M', 'Y')
             aggregate_func: Aggregation function:
-                - 'sum': Sum values (for incident cases, deaths)
-                - 'mean': Average values (for prevalence)
+                - 'sum': Sum values (for incident cases: ``I`` in incidence mode)
+                - 'mean': Average values (for prevalence, e.g. ``I_active``)
                 - 'last': Last value in period (for cumulative totals)
                 - 'max': Maximum value (for peak detection)
                 - 'min': Minimum value
