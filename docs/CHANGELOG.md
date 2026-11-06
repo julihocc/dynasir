@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- In incidence mode the column `I` stays the period's new cases. The infectious stock used by the rates and the simulation is `I_active`: equal to `I` for a one-period cohort, and the cases of the last recovery-lag periods otherwise. Simulated `results["I"]` remains period incidence (#178).
 - Quarterly data is detected as quarterly (`QE`), with a recovery lag of 14/91 and a four-lag default. It was labelled annual because a quarter is about 91 days (#186). A quarter-start index stays on its quarter-start dates instead of being moved onto quarter-end.
 - A missing period in incidence data is left undefined and reported, instead of being filled with the previous period's cases. Cumulative series still carry the last value forward (#187).
 - The Prophet backend receives the training dates and forecasts on that frequency. It no longer builds a synthetic daily index for weekly, monthly, quarterly, or annual rates (#188).

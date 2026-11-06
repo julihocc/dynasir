@@ -614,6 +614,7 @@ class Model(BaseModel, SIRDModelMixin):
                 "C",
                 "S",
                 "I",
+                "I_active",
                 "R",
                 "D",
             ]
