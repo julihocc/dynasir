@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Weekly data stays on its weekly index. `preprocess_data` no longer reindexes `frequency="W"` to daily, which repeated each weekly count on seven rows, inflated cumulative incidence about seven times, and applied the two-week recovery lag to daily rows (#177).
 - `run_simulations()` no longer crashes with `BrokenProcessPool` when the process pool breaks, for example in a Windows or macOS script without an `if __name__ == "__main__":` guard. It logs a warning that explains the cause and reruns the simulations sequentially (#160).
 - Legacy `dynasir.epydemics.Model` initialises again, and its results no longer fail on the SIRDV rate and compartment (#173).
 - `evaluate_forecast` works with read-only arrays (#173).
@@ -48,9 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   example (the annual recovery lag is 14/365, not 1), the known-limitations
   page and the user guide's annual section to describe current behaviour:
   period-cohort rates, zero-case periods and `incidence_offset`, widening
-  scenario ranges, and the open daily/weekly incidence issues (#172, #177,
-  #178). The guide no longer recommends `window=3` for annual data, which is
-  not smoothed.
+  scenario ranges, and the open incidence approximation for recovery lags
+  above one period (#178). The guide no longer recommends `window=3` for
+  annual data, which is not smoothed.
 
 ## [1.0.0] - 2026-01-13
 

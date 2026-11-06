@@ -43,8 +43,9 @@ def preprocess_data(
     Preprocess raw data by applying rolling window smoothing and conditional reindexing.
 
     Behavior is frequency-aware:
-    - Daily/Weekly: Applies rolling window smoothing and reindexes to daily (current behavior)
-    - Monthly/Annual: Applies minimal smoothing and keeps native frequency (no reindexing)
+    - Daily: Applies rolling window smoothing and reindexes to a complete daily range
+    - Weekly, monthly, and annual: Applies frequency-adjusted smoothing and keeps
+      the native index (no expansion to daily)
 
     Args:
         data: Raw input DataFrame with DatetimeIndex
@@ -54,14 +55,19 @@ def preprocess_data(
                 - Monthly: min(window, 2)
                 - Annual: min(window, 1) - effectively no smoothing
         frequency: Data frequency ('D', 'W', 'ME', 'YE'). If None, attempts auto-detection.
-                  Controls whether data is reindexed to daily or kept in native frequency.
+                  Daily data is reindexed to a complete daily range. Every other
+                  frequency keeps its native index.
 
     Returns:
-        Preprocessed DataFrame with native frequency preserved (or reindexed to daily for D/W)
+        Preprocessed DataFrame. Daily data is reindexed to a complete daily
+        range. Other frequencies keep their native index.
 
     Examples:
         >>> # Daily data: normal smoothing and daily reindexing
         >>> daily_processed = preprocess_data(daily_data, window=7, frequency='D')
+
+        >>> # Weekly data: smoothing in weeks, NO expansion to daily
+        >>> weekly_processed = preprocess_data(weekly_data, window=1, frequency='W')
 
         >>> # Annual data: minimal smoothing, NO reindexing
         >>> annual_processed = preprocess_data(annual_data, window=7, frequency='YE')
@@ -86,11 +92,12 @@ def preprocess_data(
         smoothed_data = data.copy()
 
     # Conditional reindexing based on frequency
-    if frequency in ("D", "W"):
-        # Daily/Weekly: Reindex to daily (backward compatible)
+    if frequency == "D":
+        # Daily: fill gaps on a complete daily range
         reindexed_data = reindex_data(smoothed_data, freq="D", warn_on_mismatch=True)
     else:
-        # Monthly/Annual: Skip reindexing, keep native frequency
+        # Weekly and sparser frequencies: keep the native index. Expanding
+        # weekly counts onto daily rows repeats each count about seven times.
         logging.info(f"Preserving native {frequency} frequency (skipping reindexing)")
         reindexed_data = smoothed_data.ffill()
 
