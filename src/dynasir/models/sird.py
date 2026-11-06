@@ -3,6 +3,7 @@
 import hashlib
 import json
 import logging
+import math
 import warnings
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
@@ -218,12 +219,13 @@ class Model(BaseModel, SIRDModelMixin):
         )
         self.training_container = training_container
 
-        # Reindex data (frequency-aware - skip reindexing for non-daily data)
-        if hasattr(data_container, "frequency") and data_container.frequency in (
-            "ME",
-            "YE",
+        # Keep every non-daily frequency on its own grid. Reindexing weekly
+        # or quarterly data to daily repeats each count on many rows.
+        native_frequencies = ("B", "W", "ME", "QE", "YE")
+        if (
+            hasattr(data_container, "frequency")
+            and data_container.frequency in native_frequencies
         ):
-            # For monthly/annual: just slice by date range, no reindexing
             freq_to_use = data_container.frequency
             logging.debug(f"Using frequency-aware reindexing: {freq_to_use}")
             self.data = reindex_data(
@@ -232,18 +234,31 @@ class Model(BaseModel, SIRDModelMixin):
                 stop,
                 freq=freq_to_use,
                 warn_on_mismatch=False,
+                fill=self.mode != "incidence",
             )
         else:
-            # For daily/weekly or when no frequency info: use default (daily reindexing)
-            self.data = reindex_data(training_container.data, start, stop)
+            # Daily, or no frequency info: complete daily range
+            self.data = reindex_data(
+                training_container.data,
+                start,
+                stop,
+                fill=self.mode != "incidence",
+            )
 
         # Transformed rates to forecast: logit rates, or for period-cohort
         # incidence data log alpha and logit gamma (beta = 1 - gamma)
         available_logit_ratios = get_forecast_columns(self.data.columns)
         self.cohort = LOG_ALPHA in available_logit_ratios
         # The rate in row t is the step from t to t+1; the last row's step
-        # leaves the training window, so it is not used for fitting (#164, #165)
-        self.logit_ratios_values = self.data[available_logit_ratios].values[:-1]
+        # leaves the training window, so it is not used for fitting (#164, #165).
+        # The first ceil(lag) rows are a recovery warm-up when the lag is
+        # longer than one period: the lagged cumulative is still zero there
+        # and the rates are not usable (#184).
+        fit_rates = self._rates_for_fitting(
+            self.data[available_logit_ratios], data_container, start
+        )
+        self.logit_ratios_values = fit_rates.values
+        self.fit_index = fit_rates.index
         self.active_logit_ratios = available_logit_ratios  # Store for later use
 
         # Detect vaccination presence
@@ -264,6 +279,7 @@ class Model(BaseModel, SIRDModelMixin):
             active_logit_ratios=available_logit_ratios,
             backend=forecaster,
             frequency=self.data.index.freqstr or data_container.frequency,
+            rate_index=self.fit_index,
         )
         if self.steps_to_forecast is not None:
             self.var_forecasting.steps_to_forecast = self.steps_to_forecast
@@ -271,6 +287,33 @@ class Model(BaseModel, SIRDModelMixin):
         # Results and simulation attributes (set during model execution)
         self.results: Optional[Box] = None
         self.simulation_engine: Optional[EpidemicSimulation] = None
+
+    def _rates_for_fitting(self, rates: pd.DataFrame, data_container, start):
+        """Drop the recovery warm-up and the last row, whose step is out of sample."""
+        handler = getattr(data_container, "handler", None)
+        lag = handler.get_recovery_lag() if handler is not None else 0
+        warmup = math.ceil(lag) if lag and lag > 1 else 0
+        raw_index = getattr(getattr(data_container, "raw_data", None), "index", None)
+        if (
+            warmup
+            and raw_index is not None
+            and len(raw_index) > warmup
+            and isinstance(raw_index, pd.DatetimeIndex)
+        ):
+            warmup_end = raw_index[warmup - 1]
+            kept = rates.loc[rates.index > warmup_end]
+            if len(kept) < len(rates):
+                start_ts = None if start is None else pd.Timestamp(start)
+                if start_ts is None or start_ts <= warmup_end:
+                    warnings.warn(
+                        f"The first {warmup} period(s), through "
+                        f"{pd.Timestamp(warmup_end).date()}, are the recovery-lag "
+                        "warm-up. Their rates are excluded from fitting.",
+                        UserWarning,
+                        stacklevel=3,
+                    )
+            rates = kept
+        return rates.iloc[:-1]
 
     @property
     def logit_ratios_model(self):

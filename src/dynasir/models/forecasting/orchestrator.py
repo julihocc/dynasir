@@ -80,6 +80,7 @@ class ForecastingOrchestrator:
         active_logit_ratios: Optional[list] = None,
         backend: str = "var",
         frequency: Optional[str] = None,
+        rate_index: Optional[pd.DatetimeIndex] = None,
     ):
         """
         Initialize the forecasting orchestrator.
@@ -119,6 +120,7 @@ class ForecastingOrchestrator:
         self.window = window
         self.backend_name = backend
         self.frequency = frequency
+        self.rate_index = rate_index
 
         # Use provided active ratios or default to all LOGIT_RATIOS
         self.active_logit_ratios = (
@@ -146,7 +148,19 @@ class ForecastingOrchestrator:
                 f"Original error: {e}"
             )
 
-        self.forecaster: BaseForecaster = forecaster_class(logit_ratios_values)
+        # Give the backend the training dates. A bare array makes Prophet
+        # invent a daily index, so weekly or annual rates are fitted as days.
+        n_rows = len(self.logit_ratios_values)
+        if self.rate_index is not None:
+            training_index = self.rate_index
+        else:
+            training_index = self.data.index[:n_rows]
+        framed = pd.DataFrame(
+            self.logit_ratios_values,
+            index=training_index,
+            columns=list(self.active_logit_ratios),
+        )
+        self.forecaster: BaseForecaster = forecaster_class(framed)
         if hasattr(self.forecaster, "column_names"):
             self.forecaster.column_names = list(self.active_logit_ratios)
 

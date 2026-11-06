@@ -156,7 +156,7 @@ class DataContainer:
                 logging.info("DatetimeIndex not found; defaulting to daily frequency")
         else:
             # Validate provided frequency
-            valid_frequencies = ["D", "B", "W", "ME", "YE"]
+            valid_frequencies = ["D", "B", "W", "ME", "QE", "YE"]
             if frequency not in valid_frequencies:
                 raise ValueError(
                     f"Invalid frequency '{frequency}'. Must be one of {valid_frequencies}"

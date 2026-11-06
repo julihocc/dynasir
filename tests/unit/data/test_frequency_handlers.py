@@ -14,6 +14,7 @@ from dynasir.data.frequency_handlers import (
     FrequencyHandler,
     FrequencyHandlerRegistry,
     MonthlyFrequencyHandler,
+    QuarterlyFrequencyHandler,
     WeeklyFrequencyHandler,
     detect_frequency_from_index,
     get_frequency_handler,
@@ -262,6 +263,9 @@ class TestFrequencyHandlerRegistry:
             FrequencyHandlerRegistry.get("monthly"), MonthlyFrequencyHandler
         )
         assert isinstance(
+            FrequencyHandlerRegistry.get("quarterly"), QuarterlyFrequencyHandler
+        )
+        assert isinstance(
             FrequencyHandlerRegistry.get("annual"), AnnualFrequencyHandler
         )
 
@@ -285,6 +289,7 @@ class TestFrequencyHandlerRegistry:
         assert "D" in handlers
         assert "W" in handlers
         assert "ME" in handlers
+        assert "QE" in handlers
         assert "YE" in handlers
         # Legacy aliases should not be in results
         assert "M" not in handlers or "M" == "ME"
@@ -318,11 +323,38 @@ class TestConvenienceFunctions:
         freq = detect_frequency_from_index(dates)
         assert freq in ("ME", "M")
 
+    def test_detect_frequency_quarterly(self):
+        """A quarter is about 91 days, not a year (#186)."""
+        dates = pd.date_range("2018-03-31", periods=8, freq="QE")
+        freq = detect_frequency_from_index(dates)
+        assert freq == "QE"
+
     def test_detect_frequency_annual(self):
         """Detect annual frequency."""
         dates = pd.date_range("2010-12-31", periods=10, freq="YE")
         freq = detect_frequency_from_index(dates)
         assert freq in ("YE", "Y")
+
+    def test_quarterly_container_keeps_eight_rows(self):
+        """Explicit and detected quarterly data stay on the quarterly index."""
+        from dynasir import DataContainer, Model
+
+        dates = pd.date_range("2018-03-31", periods=8, freq="QE")
+        raw = pd.DataFrame(
+            {"I": [10.0] * 8, "D": [0.0] * 8, "N": [1e6] * 8},
+            index=dates,
+        )
+        detected = DataContainer(raw, mode="incidence", window=1)
+        explicit = DataContainer(raw, mode="incidence", frequency="QE", window=1)
+
+        assert detected.frequency == "QE"
+        assert explicit.frequency == "QE"
+        assert len(explicit.data) == 8
+        assert explicit.handler.get_recovery_lag() == pytest.approx(14 / 91)
+        model = Model(explicit)
+        assert len(model.data) == 8
+        # Lag 14/91 is below one period, so only the last row is left out.
+        assert len(model.logit_ratios_values) == 7
 
     def test_detect_frequency_insufficient_data(self):
         """Should raise error with insufficient data."""
@@ -335,7 +367,7 @@ class TestConvenienceFunctions:
 class TestFrequencyHandlerInterfaces:
     """Test that all handlers implement required interface."""
 
-    @pytest.mark.parametrize("frequency", ["D", "W", "ME", "YE"])
+    @pytest.mark.parametrize("frequency", ["D", "W", "ME", "QE", "YE"])
     def test_all_handlers_have_interface(self, frequency):
         """All handlers should have required methods."""
         handler = FrequencyHandlerRegistry.get(frequency)
@@ -358,7 +390,7 @@ class TestFrequencyHandlerInterfaces:
         assert handler.get_default_max_lag() >= 1
         assert isinstance(handler.get_min_observations(), int)
 
-    @pytest.mark.parametrize("frequency", ["D", "W", "ME", "YE"])
+    @pytest.mark.parametrize("frequency", ["D", "W", "ME", "QE", "YE"])
     def test_recovery_lag_proportional_to_frequency(self, frequency):
         """Recovery lag should be appropriate for each frequency."""
         handler = FrequencyHandlerRegistry.get(frequency)
@@ -375,6 +407,8 @@ class TestFrequencyHandlerInterfaces:
             assert 1.5 < lag < 3
         elif frequency == "ME":
             assert 0.4 < lag < 0.5
+        elif frequency == "QE":
+            assert lag == pytest.approx(14 / 91)
         elif frequency == "YE":
             assert 0.03 < lag < 0.05
 

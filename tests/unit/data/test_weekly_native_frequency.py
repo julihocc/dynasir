@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from dynasir import DataContainer
+from dynasir import DataContainer, Model
 from dynasir.data.preprocessing import preprocess_data
 
 
@@ -58,6 +58,28 @@ class TestWeeklyNativeFrequency:
         assert container.frequency == "W"
         assert len(container.data) == 30
         assert container.data["C"].iloc[-1] == raw["I"].sum()
+
+    def test_model_keeps_weekly_index(self):
+        raw = _weekly_incidence()
+        container = DataContainer(raw, mode="incidence", frequency="W", window=1)
+        model = Model(container)
+        assert len(model.data) == 30
+        assert model.data.index.to_series().diff().dropna().median() == pd.Timedelta(
+            days=7
+        )
+
+    def test_weekly_fit_skips_the_two_week_warmup(self):
+        raw = _weekly_incidence()
+        container = DataContainer(raw, mode="incidence", frequency="W", window=1)
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            model = Model(container)
+
+        # 30 rows, drop the 2-week warm-up and the last out-of-sample row.
+        assert len(model.logit_ratios_values) == 27
+        assert model.fit_index[0] > raw.index[1]
+        assert any("warm-up" in str(item.message) for item in caught)
 
     def test_daily_frequency_still_fills_gaps(self):
         index = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-04"])

@@ -267,6 +267,36 @@ class AnnualFrequencyHandler(FrequencyHandler):
         return 10
 
 
+class QuarterlyFrequencyHandler(FrequencyHandler):
+    """Handler for quarterly frequency data."""
+
+    frequency_code = "QE"  # Modern pandas alias for quarter-end
+    frequency_name = "quarterly"
+    periods_per_year = 4
+
+    def validate_data(self, data: pd.DataFrame) -> None:
+        """Validate quarterly frequency data."""
+        if len(data) < 8:
+            raise ValueError(
+                f"Quarterly data requires at least 8 observations (2 years), got {len(data)}"
+            )
+
+        if not isinstance(data.index, pd.DatetimeIndex):
+            raise ValueError("Quarterly frequency data must have DatetimeIndex")
+
+    def get_recovery_lag(self) -> float:
+        """14 days ≈ 0.15 quarters (14/91)."""
+        return 14 / 91
+
+    def get_default_max_lag(self) -> int:
+        """Use up to 4 lags for quarterly data (one year)."""
+        return 4
+
+    def get_min_observations(self) -> int:
+        """At least 8 quarters (2 years) for quarterly analysis."""
+        return 8
+
+
 class FrequencyHandlerRegistry:
     """
     Factory and registry for frequency handlers.
@@ -281,9 +311,12 @@ class FrequencyHandlerRegistry:
         "B": BusinessDayFrequencyHandler,
         "W": WeeklyFrequencyHandler,
         "ME": MonthlyFrequencyHandler,
+        "QE": QuarterlyFrequencyHandler,
         "YE": AnnualFrequencyHandler,
         # Legacy aliases (deprecated in pandas 2.2+)
         "M": MonthlyFrequencyHandler,
+        "Q": QuarterlyFrequencyHandler,
+        "QS": QuarterlyFrequencyHandler,
         "Y": AnnualFrequencyHandler,
         # Friendly names
         "daily": DailyFrequencyHandler,
@@ -292,6 +325,7 @@ class FrequencyHandlerRegistry:
         "bday": BusinessDayFrequencyHandler,
         "weekly": WeeklyFrequencyHandler,
         "monthly": MonthlyFrequencyHandler,
+        "quarterly": QuarterlyFrequencyHandler,
         "annual": AnnualFrequencyHandler,
     }
 
@@ -345,7 +379,7 @@ class FrequencyHandlerRegistry:
         unique_handlers = {}
         for frequency, handler_class in cls._HANDLERS.items():
             # Use frequency code as key, skip legacy aliases
-            if frequency not in ("M", "Y"):
+            if frequency not in ("M", "Q", "QS", "Y"):
                 unique_handlers[frequency] = handler_class()
 
         return unique_handlers
@@ -413,9 +447,12 @@ def detect_frequency_from_index(date_index: pd.DatetimeIndex) -> str:
             inferred_freq_str = str(inferred_freq).upper()
 
             # Map inferred frequency to standard codes
-            # Check Y/A BEFORE D (since 'D' appears in 'YE-DEC')
+            # Check Y/A BEFORE D (since 'D' appears in 'YE-DEC').
+            # Check Q before any later letter test: 'QE-DEC' is quarterly.
             if "Y" in inferred_freq_str or "A" in inferred_freq_str:
                 return "YE"
+            elif "Q" in inferred_freq_str:
+                return "QE"
             elif "M" in inferred_freq_str:
                 return "ME"
             elif "W" in inferred_freq_str:
@@ -429,7 +466,7 @@ def detect_frequency_from_index(date_index: pd.DatetimeIndex) -> str:
         deltas = (date_index[1:] - date_index[:-1]).days
         avg_delta = deltas.mean()
 
-        # Thresholds: D < 1.5, B ~ 0.7 (weekday only), W < 10, ME < 40, YE >= 40
+        # Thresholds: D < 1.5, B ~ 0.7, W < 10, ME < 40, QE about 91, else YE
         # Note: Business day average is ~0.7 days (skips weekends)
         if avg_delta < 0.8:  # Business day has lower average due to weekend skips
             return "B"
@@ -439,6 +476,8 @@ def detect_frequency_from_index(date_index: pd.DatetimeIndex) -> str:
             return "W"
         elif avg_delta < 40:
             return "ME"
+        elif 80 <= avg_delta <= 120:
+            return "QE"
         else:
             return "YE"
 
@@ -456,6 +495,8 @@ def detect_frequency_from_index(date_index: pd.DatetimeIndex) -> str:
                 return "W"
             elif days < 40:
                 return "ME"
+            elif 80 <= days <= 120:
+                return "QE"
             else:
                 return "YE"
         except Exception:

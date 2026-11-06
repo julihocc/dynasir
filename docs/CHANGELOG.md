@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Quarterly data is detected as quarterly (`QE`), with a recovery lag of 14/91 and a four-lag default. It was labelled annual because a quarter is about 91 days (#186).
+- A missing period in incidence data is left undefined and reported, instead of being filled with the previous period's cases. Cumulative series still carry the last value forward (#187).
+- The Prophet backend receives the training dates and forecasts on that frequency. It no longer builds a synthetic daily index for weekly, monthly, quarterly, or annual rates (#188).
+- Rates from the recovery-lag warm-up are left out of model fitting when the lag is longer than one period. Those first rows have no lagged cumulative cases yet, so beta collapses and R0 is extreme. A lag of at most one period, including annual and monthly cohorts, is unchanged (#184).
 - Weekly data stays on its weekly index. `preprocess_data` no longer reindexes `frequency="W"` to daily, which repeated each weekly count on seven rows, inflated cumulative incidence about seven times, and applied the two-week recovery lag to daily rows (#177).
 - `run_simulations()` no longer crashes with `BrokenProcessPool` when the process pool breaks, for example in a Windows or macOS script without an `if __name__ == "__main__":` guard. It logs a warning that explains the cause and reruns the simulations sequentially (#160).
 - Legacy `dynasir.epydemics.Model` initialises again, and its results no longer fail on the SIRDV rate and compartment (#173).

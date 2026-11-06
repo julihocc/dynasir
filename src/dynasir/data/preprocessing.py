@@ -21,7 +21,7 @@ def _get_effective_window(window: int, frequency: str) -> int:
 
     Args:
         window: Requested window size
-        frequency: Data frequency ('D', 'W', 'ME', 'YE')
+        frequency: Data frequency ('D', 'W', 'ME', 'QE', 'YE')
 
     Returns:
         Effective window size capped for frequency
@@ -30,6 +30,8 @@ def _get_effective_window(window: int, frequency: str) -> int:
         return window  # Use requested window for dense frequencies
     elif frequency == "ME":  # Monthly
         return min(window, 2)  # Cap at 2 months
+    elif frequency == "QE":  # Quarterly
+        return min(window, 2)  # Cap at 2 quarters
     elif frequency == "YE":  # Annual
         return 1  # No smoothing for annual (only 1 observation per year)
     else:
@@ -54,7 +56,7 @@ def preprocess_data(
                 - Daily/Weekly: uses provided window
                 - Monthly: min(window, 2)
                 - Annual: min(window, 1) - effectively no smoothing
-        frequency: Data frequency ('D', 'W', 'ME', 'YE'). If None, attempts auto-detection.
+        frequency: Data frequency ('D', 'W', 'ME', 'QE', 'YE'). If None, attempts auto-detection.
                   Daily data is reindexed to a complete daily range. Every other
                   frequency keeps its native index.
 
@@ -113,6 +115,7 @@ def reindex_data(
     stop: Optional[str] = None,
     freq: Optional[str] = None,
     warn_on_mismatch: bool = True,
+    fill: bool = True,
 ) -> pd.DataFrame:
     """
     Reindex DataFrame to a consistent date range and forward fill missing values.
@@ -124,6 +127,9 @@ def reindex_data(
         freq: Target frequency ('D', 'W', 'M', 'Y'). Defaults to 'D' for
             backward compatibility.
         warn_on_mismatch: If True, warn when source and target frequencies differ
+        fill: If True, forward-fill values onto inserted periods. Incidence
+            data should pass False so a missing period is not a copy of the
+            previous period's cases.
 
     Returns:
         Reindexed DataFrame
@@ -192,11 +198,23 @@ def reindex_data(
     except Exception as e:
         raise Exception(f"Could not reindex data: {e}")
 
-    try:
-        # Use forward fill for missing values
-        reindexed_data = reindexed_data.ffill()
-    except Exception as e:
-        raise Exception(f"Could not fill missing values: {e}")
+    inserted = reindexed_data.index.difference(data.index)
+    if fill:
+        try:
+            # Use forward fill for missing values
+            reindexed_data = reindexed_data.ffill()
+        except Exception as e:
+            raise Exception(f"Could not fill missing values: {e}")
+    elif len(inserted):
+        shown = ", ".join(ts.strftime("%Y-%m-%d") for ts in inserted[:10])
+        more = f" and {len(inserted) - 10} more" if len(inserted) > 10 else ""
+        warnings.warn(
+            f"Inserted {len(inserted)} missing period(s) ({shown}{more}) "
+            "and left them undefined. Repeating the previous period's value "
+            "would copy incident cases into a period that was not reported.",
+            UserWarning,
+            stacklevel=3,
+        )
 
     return reindexed_data
 
@@ -252,6 +270,8 @@ def detect_frequency(data: pd.DataFrame) -> str:
         return "W"
     elif median_diff <= pd.Timedelta(days=45):
         return "M"
+    elif pd.Timedelta(days=80) <= median_diff <= pd.Timedelta(days=100):
+        return "QE"
     elif median_diff >= pd.Timedelta(days=300):
         return "Y"
     else:

@@ -127,6 +127,18 @@ class ProphetForecaster(BaseForecaster):
 
         logging.info(f"ProphetForecaster initialized with {self.n_rates} rates")
 
+    def _forecast_freq(self):
+        """Frequency of the training index, or daily when the index is absent."""
+        index = self.data_index
+        if index is not None:
+            freqstr = getattr(index, "freqstr", None)
+            if freqstr:
+                return freqstr
+            inferred = pd.infer_freq(index)
+            if inferred is not None:
+                return inferred
+        return "D"
+
     @property
     def backend_name(self) -> str:
         """Return the canonical name of this backend."""
@@ -218,7 +230,8 @@ class ProphetForecaster(BaseForecaster):
 
         # Create datetime index if not provided
         if self.data_index is None:
-            # Default to daily data starting from arbitrary date
+            # No dates were supplied with the array. Keep the historical
+            # daily placeholder; a real index uses its own frequency.
             self.data_index = pd.date_range(
                 start="2020-01-01", periods=len(self.data_array), freq="D"
             )
@@ -281,7 +294,9 @@ class ProphetForecaster(BaseForecaster):
         # Prepare future dataframe
         if self.data_index is None:
             self.data_index = pd.date_range(
-                start="2020-01-01", periods=len(self.data_array), freq="D"
+                start="2020-01-01",
+                periods=len(self.data_array),
+                freq=self._forecast_freq(),
             )
 
         # Initialize output arrays
@@ -292,7 +307,9 @@ class ProphetForecaster(BaseForecaster):
         # Generate forecasts for each rate
         for i, model in enumerate(self.fitted_models):
             # Create future dates dataframe
-            future = model.make_future_dataframe(periods=steps, freq="D")
+            future = model.make_future_dataframe(
+                periods=steps, freq=self._forecast_freq()
+            )
 
             # Generate forecast with uncertainty intervals
             forecast = model.predict(future)
