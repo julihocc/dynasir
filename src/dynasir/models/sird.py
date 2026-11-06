@@ -16,7 +16,7 @@ from dynasir.core.config import get_settings
 from ..analysis.evaluation import evaluate_forecast as _evaluate_forecast
 from ..analysis.visualization import visualize_results as _visualize_results
 from ..core.constants import COMPARTMENTS, FORECASTING_LEVELS, LOGIT_RATIOS
-from ..data.features import LOG_ALPHA, get_forecast_columns
+from ..data.features import get_forecast_columns
 from ..data.preprocessing import reindex_data
 from .base import BaseModel, SIRDModelMixin
 from .forecasting.orchestrator import ForecastingOrchestrator
@@ -247,8 +247,13 @@ class Model(BaseModel, SIRDModelMixin):
 
         # Transformed rates to forecast: logit rates, or for period-cohort
         # incidence data log alpha and logit gamma (beta = 1 - gamma)
-        available_logit_ratios = get_forecast_columns(self.data.columns)
-        self.cohort = LOG_ALPHA in available_logit_ratios
+        # Cohort semantics are a property of the recovery lag, not of whether
+        # alpha is stored as log_alpha. Weekly incidence uses log_alpha and
+        # still forecasts beta on its own (#185).
+        self.cohort = bool(getattr(data_container, "cohort", False))
+        available_logit_ratios = get_forecast_columns(
+            self.data.columns, cohort=self.cohort
+        )
         # The rate in row t is the step from t to t+1; the last row's step
         # leaves the training window, so it is not used for fitting (#164, #165).
         # The first ceil(lag) rows are a recovery warm-up when the lag is
@@ -529,6 +534,7 @@ class Model(BaseModel, SIRDModelMixin):
             self.forecasting_box,
             self.forecasting_interval,
             importation_rate=self.importation_rate,
+            cohort=self.cohort,
         )
 
     def forecast_logit_ratios(self, steps: Optional[int] = None, **kwargs) -> None:
@@ -859,6 +865,7 @@ class Model(BaseModel, SIRDModelMixin):
             scenario_forecasting_box,
             self.forecasting_interval,
             importation_rate=scenario_importation,
+            cohort=self.cohort,
         )
 
         # Run simulation with the configured default n_jobs

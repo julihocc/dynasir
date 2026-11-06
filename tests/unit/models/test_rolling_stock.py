@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from dynasir import DataContainer
+from dynasir import DataContainer, Model
 from dynasir.core.constants import FORECASTING_LEVELS
 from dynasir.models.simulation import EpidemicSimulation
 
@@ -26,17 +26,19 @@ def test_weekly_stock_is_the_last_two_cohorts():
     expected = raw["I"] + raw["I"].shift(1).fillna(0)
     np.testing.assert_allclose(data["incidence"], raw["I"])
     np.testing.assert_allclose(data["I"], expected)
-    assert "log_alpha" not in data.columns
-    # Denominator of alpha is the stock, not this week's cases.
-    # Values above 1 are clipped by the logit transform (#185).
+    # Alpha above 1 stays on the log scale, and beta is still its own rate.
+    assert "log_alpha" in data.columns
+    assert "logit_beta" in data.columns
+    assert "logit_alpha" not in data.columns
     growth = data["incidence"].shift(-1)
     expected_alpha = data["A"] * growth / (data["I"] * data["S"])
-    stored = data["alpha"].iloc[:-1]
-    raw_alpha = expected_alpha.iloc[:-1]
-    free = raw_alpha < 0.99
-    np.testing.assert_allclose(stored[free], raw_alpha[free], rtol=1e-6)
-    assert (raw_alpha[~free] > 1).any()
-    assert (stored[~free] < 1).all()
+    np.testing.assert_allclose(
+        data["alpha"].iloc[:-1], expected_alpha.iloc[:-1], rtol=1e-6
+    )
+    assert (expected_alpha.iloc[:-1] > 1).any()
+    container = DataContainer(raw, mode="incidence", frequency="W", window=1)
+    assert container.cohort is False
+    assert Model(container).cohort is False
 
 
 def test_weekly_replay_reports_new_cases():

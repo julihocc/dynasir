@@ -49,6 +49,7 @@ def _run_single_simulation(
     forecasting_interval: pd.DatetimeIndex,
     simulation_levels: Tuple[str, ...],
     importation_rate: float = 0.0,
+    cohort: Optional[bool] = None,
 ) -> Tuple[Tuple[str, ...], pd.DataFrame]:
     """
     Helper function to run a single simulation scenario.
@@ -69,7 +70,11 @@ def _run_single_simulation(
     """
     # Create temporary simulation object to use its method
     temp_sim = EpidemicSimulation(
-        data, forecasting_box, forecasting_interval, importation_rate=importation_rate
+        data,
+        forecasting_box,
+        forecasting_interval,
+        importation_rate=importation_rate,
+        cohort=cohort,
     )
     result = temp_sim.simulate_for_given_levels(simulation_levels)
     return (simulation_levels, result)
@@ -86,13 +91,19 @@ class EpidemicSimulation:
         forecasting_box: Dict[str, pd.DataFrame],
         forecasting_interval: pd.DatetimeIndex,
         importation_rate: float = 0.0,
+        cohort: Optional[bool] = None,
     ):
         self.data = data
         self.forecasting_box = forecasting_box
         self.forecasting_interval = forecasting_interval
         self.importation_rate = importation_rate
-        # Period-cohort incidence data (see dynasir.data.features.uses_cohort_semantics)
-        self.cohort = LOG_ALPHA in getattr(data, "columns", [])
+        # log_alpha only means alpha is unbounded. Cohort semantics are the
+        # case where beta is not forecast on its own (beta = 1 - gamma).
+        if cohort is None:
+            columns = getattr(data, "columns", [])
+            self.cohort = LOG_ALPHA in columns and "logit_beta" not in columns
+        else:
+            self.cohort = cohort
 
         # Detect if we have vaccination (delta rate present)
         self.has_vaccination = "delta" in forecasting_box
@@ -365,6 +376,7 @@ class EpidemicSimulation:
                     self.forecasting_interval,
                     scenario,
                     self.importation_rate,
+                    self.cohort,
                 )
                 for scenario in scenarios
             ]

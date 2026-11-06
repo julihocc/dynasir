@@ -5,7 +5,7 @@ import pandas as pd
 
 from dynasir.core.config import get_settings
 
-from .features import feature_engineering
+from .features import feature_engineering, uses_cohort_semantics
 from .frequency_handlers import (
     FrequencyHandler,
     detect_frequency_from_index,
@@ -165,6 +165,9 @@ class DataContainer:
 
         # Get frequency-specific handler
         self.handler = get_frequency_handler(self.frequency)
+        self.cohort = uses_cohort_semantics(
+            self.mode, self.handler.get_recovery_lag()
+        )
         logging.info(
             f"Using {self.handler.__class__.__name__} for {self.frequency} frequency"
         )

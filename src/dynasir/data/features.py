@@ -6,7 +6,7 @@ and applying transformations (like logit) to prepare data for modeling.
 """
 
 import logging
-from typing import Union
+from typing import Optional, Union
 
 import pandas as pd
 
@@ -39,44 +39,65 @@ def uses_cohort_semantics(mode: str, recovery_lag: float) -> bool:
     return mode == "incidence" and recovery_lag is not None and recovery_lag <= 1
 
 
-def get_forecast_columns(columns) -> list:
+def uses_log_alpha(mode: str) -> bool:
+    """Return True when alpha is a growth ratio that can exceed 1.
+
+    Every incidence series uses that form. Cumulative series keep alpha inside
+    (0, 1) and forecast its logit. This is independent of period-cohort
+    semantics: a weekly stock can produce alpha > 1 without the whole stock
+    leaving in one period.
+    """
+    return mode == "incidence"
+
+
+def get_forecast_columns(columns, cohort: Optional[bool] = None) -> list:
     """
     Return the transformed rate columns that a forecaster should model.
 
-    Cohort-mode data (with a ``log_alpha`` column) forecasts ``log_alpha``,
-    ``logit_gamma`` and, for SIRDV, ``logit_delta``; beta is derived as
-    1 - gamma. Other data forecasts the logit of every rate present.
+    ``log_alpha`` means alpha is forecast on the log scale. It does not by
+    itself mean period-cohort semantics. Cohort data omits ``logit_beta``
+    because beta = 1 - gamma. Other series that use ``log_alpha`` still
+    forecast ``logit_beta``.
 
     Args:
         columns: Column names of a feature-engineered DataFrame
+        cohort: Period-cohort incidence. When omitted, inferred as
+            ``log_alpha`` present and ``logit_beta`` absent.
 
     Returns:
         List of column names in forecasting order
     """
     columns = list(columns)
+    if cohort is None:
+        cohort = LOG_ALPHA in columns and "logit_beta" not in columns
     if LOG_ALPHA in columns:
-        names = [LOG_ALPHA, "logit_gamma", "logit_delta"]
+        names = [LOG_ALPHA]
+        if not cohort:
+            names.append("logit_beta")
+        names.extend(["logit_gamma", "logit_delta"])
     else:
         names = list(LOGIT_RATIOS)
     return [name for name in names if name in columns]
 
 
 def prepare_for_logit_function(
-    data: pd.DataFrame, cohort: bool = False
+    data: pd.DataFrame, cohort: bool = False, log_alpha: bool = False
 ) -> pd.DataFrame:
     """
     Prepare rate data for logit transformation by ensuring values are in (0,1).
 
     Args:
         data: DataFrame containing rate columns
-        cohort: If True, alpha is only bounded below, because it is
-            log-transformed and can exceed 1 (see uses_cohort_semantics)
+        cohort: Kept for callers that have not passed ``log_alpha``. Alpha is
+            only bounded below when it is log-transformed.
+        log_alpha: If True, alpha can exceed 1 and is only bounded below.
 
     Returns:
         DataFrame with rates bounded between 0 and 1 (alpha bounded below
-        only in cohort mode)
+        only when it is log-transformed)
     """
     data = data.copy()
+    unbounded_alpha = cohort or log_alpha
 
     # Ensure rates are within (0,1) bounds for logit transformation
     epsilon = 1e-10
@@ -87,7 +108,7 @@ def prepare_for_logit_function(
                 [float("inf"), -float("inf")], float("nan")
             )
 
-            if cohort and ratio == "alpha":
+            if unbounded_alpha and ratio == "alpha":
                 data[ratio] = data[ratio].clip(lower=epsilon)
             else:
                 # Bound values between small epsilon and (1-epsilon)
@@ -126,7 +147,9 @@ def logistic_function(x: Union[float, pd.Series]) -> Union[float, pd.Series]:
     return 1 / (1 + np.exp(-x))
 
 
-def add_logit_ratios(data: pd.DataFrame, cohort: bool = False) -> pd.DataFrame:
+def add_logit_ratios(
+    data: pd.DataFrame, cohort: bool = False, log_alpha: bool = False
+) -> pd.DataFrame:
     """
     Add logit-transformed ratio columns to the DataFrame.
 
@@ -134,6 +157,8 @@ def add_logit_ratios(data: pd.DataFrame, cohort: bool = False) -> pd.DataFrame:
         data: DataFrame containing rate columns
         cohort: If True, add ``log_alpha`` instead of ``logit_alpha`` and no
             ``logit_beta`` (beta is derived as 1 - gamma)
+        log_alpha: If True, and this is not cohort data, add ``log_alpha``
+            instead of ``logit_alpha`` and still add ``logit_beta``.
 
     Returns:
         DataFrame with additional logit rate columns
@@ -141,14 +166,17 @@ def add_logit_ratios(data: pd.DataFrame, cohort: bool = False) -> pd.DataFrame:
     import numpy as np
 
     data = data.copy()
+    use_log_alpha = cohort or log_alpha
 
-    if cohort and "alpha" in data.columns:
+    if use_log_alpha and "alpha" in data.columns:
         data[LOG_ALPHA] = np.log(data["alpha"])
 
     # Add logit transformations for each ratio
     ratio_pairs = list(zip(RATIOS, LOGIT_RATIOS))
     for ratio, logit_ratio in ratio_pairs:
         if cohort and ratio in ("alpha", "beta"):
+            continue
+        if use_log_alpha and ratio == "alpha":
             continue
         if ratio in data.columns:
             try:
@@ -223,6 +251,7 @@ def feature_engineering(
         logging.debug(f"Using default recovery lag: {recovery_lag}")
 
     cohort = uses_cohort_semantics(mode, recovery_lag)
+    log_alpha = uses_log_alpha(mode)
     if cohort:
         logging.debug(
             f"Incidence data with recovery lag {recovery_lag} <= 1 period: "
@@ -259,8 +288,12 @@ def feature_engineering(
     logging.debug(f"When completing assignments, columns are {engineered_data.columns}")
 
     # Prepare rates for logit transformation and apply it
-    engineered_data = prepare_for_logit_function(engineered_data, cohort=cohort)
-    engineered_data = add_logit_ratios(engineered_data, cohort=cohort)
+    engineered_data = prepare_for_logit_function(
+        engineered_data, log_alpha=log_alpha
+    )
+    engineered_data = add_logit_ratios(
+        engineered_data, cohort=cohort, log_alpha=log_alpha
+    )
 
     # Count undefined rates (division by zero) that the fill below replaces.
     # The last row has no next period, so its rates are always undefined.

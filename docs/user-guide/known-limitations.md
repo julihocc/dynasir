@@ -86,5 +86,5 @@ For a recovery lag longer than one period (daily data, lag 14; weekly data,
 lag 2), the infectious compartment is the rolling stock `C_t - C_(t-lag)`.
 The input counts are kept in `incidence`, and `results["I"]` is the new cases
 of each period (#178). Weekly counts stay on the weekly index (#177). Alpha
-for these series can exceed 1 and is still logit-transformed, which clips it
-(#185).
+is forecast on the log scale, including when it exceeds 1, without treating
+the series as a one-period cohort (#185).
