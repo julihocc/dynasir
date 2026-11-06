@@ -29,6 +29,7 @@ from .core.config import get_settings
 
 # Import specific constants and exceptions to avoid star imports
 from .core.constants import (
+    ACTIVE_INFECTIONS,
     CENTRAL_TENDENCY_METHODS,
     COMPARTMENT_LABELS,
     COMPARTMENTS,
@@ -37,6 +38,7 @@ from .core.constants import (
     METHOD_COLORS,
     METHOD_NAMES,
     RATIOS,
+    RESULT_COMPARTMENTS,
 )
 from .core.exceptions import (
     DataValidationError,
@@ -68,6 +70,8 @@ __all__ = [
     "LOGIT_RATIOS",
     "COMPARTMENTS",
     "COMPARTMENT_LABELS",
+    "RESULT_COMPARTMENTS",
+    "ACTIVE_INFECTIONS",
     "FORECASTING_LEVELS",
     "CENTRAL_TENDENCY_METHODS",
     "METHOD_NAMES",

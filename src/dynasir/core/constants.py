@@ -6,11 +6,16 @@ RATIOS = ["alpha", "beta", "gamma", "delta"]
 LOGIT_RATIOS = ["logit_alpha", "logit_beta", "logit_gamma", "logit_delta"]
 FORECASTING_LEVELS = ["lower", "point", "upper"]
 COMPARTMENTS = ["A", "C", "S", "I", "R", "D", "V"]
+# Active-infection stock in incidence mode, where I is period incidence
+ACTIVE_INFECTIONS = "I_active"
+# Compartments reported in results (COMPARTMENTS plus the incidence-mode stock)
+RESULT_COMPARTMENTS = ["A", "C", "S", "I", ACTIVE_INFECTIONS, "R", "D", "V"]
 COMPARTMENT_LABELS = {
     "A": "Active",
     "C": "Confirmed",
     "S": "Susceptible",
     "I": "Infected",
+    ACTIVE_INFECTIONS: "Currently infected",
     "R": "Recovered",
     "D": "Deaths",
     "V": "Vaccinated",

@@ -614,6 +614,7 @@ class Model(BaseModel, SIRDModelMixin):
                 "C",
                 "S",
                 "I",
+                "I_active",
                 "R",
                 "D",
             ]
@@ -960,11 +961,11 @@ class Model(BaseModel, SIRDModelMixin):
         results at coarser frequency (e.g., annual cases from daily model).
 
         Args:
-            compartment_code: Compartment to aggregate (C, I, R, D, V)
+            compartment_code: Compartment to aggregate (C, I, I_active, R, D, V)
             target_frequency: Target frequency ('W', 'M', 'Y')
             aggregate_func: Aggregation function:
-                - 'sum': Sum values (for incident cases, deaths)
-                - 'mean': Average values (for prevalence)
+                - 'sum': Sum values (for incident cases: ``I`` in incidence mode)
+                - 'mean': Average values (for prevalence, e.g. ``I_active``)
                 - 'last': Last value in period (for cumulative totals)
                 - 'max': Maximum value (for peak detection)
                 - 'min': Minimum value
@@ -1048,8 +1049,17 @@ class Model(BaseModel, SIRDModelMixin):
                 f"Must be one of {list(agg_funcs.keys())}"
             )
 
-        # If target frequency matches source, skip resampling
-        if modern_source_freq and modern_source_freq == modern_target_freq:
+        # If target frequency matches source, skip resampling. Compare base codes
+        # so that anchored forms ('W-MON', 'YE-DEC') match 'W' and 'YE';
+        # resampling 'W-MON' results with 'W' would move them onto Sundays.
+        from dynasir.data.frequency_handlers import base_frequency_code
+
+        def _base(freq):
+            return base_frequency_code(freq) or freq
+
+        if modern_source_freq and _base(modern_source_freq) == _base(
+            modern_target_freq
+        ):
             aggregated = daily_results.copy()
         else:
             resampler = daily_results.resample(modern_target_freq)
