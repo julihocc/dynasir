@@ -85,6 +85,16 @@ test = [
     "pytest-xdist>=3.0.0",
     "tox>=4.0.0",
 ]
+# Optional forecasting backends (the base install provides VAR only)
+prophet = [
+    "prophet>=1.1.5",
+]
+arima = [
+    "pmdarima>=2.0.4",
+]
+all = [
+    "dynasir[prophet,arima]",
+]
 
 [project.urls]
 # TODO: Verify repository URLs post-rebrand

@@ -88,6 +88,14 @@ You can install `dynasir` from PyPI:
 pip install dynasir
 ```
 
+The base install includes the VAR forecasting backend. The Prophet and ARIMA backends are optional extras:
+
+```bash
+pip install "dynasir[prophet]"  # Prophet backend
+pip install "dynasir[arima]"    # ARIMA backend (pmdarima)
+pip install "dynasir[all]"      # all optional backends
+```
+
 To install the latest development version, you can clone this repository and install it in editable mode:
 
 ```bash
