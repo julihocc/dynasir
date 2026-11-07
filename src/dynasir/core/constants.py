@@ -37,6 +37,7 @@ METHOD_COLORS = {
 # --- Multi-Frequency Support (v0.8.0+) ---
 FREQUENCY_ALIASES = {
     "D": "daily",
+    "B": "business day",
     "W": "weekly",
     "M": "monthly",
     "Y": "annual",
@@ -47,7 +48,7 @@ FREQUENCY_ALIASES = {
     "annual": "Y",
 }
 
-SUPPORTED_FREQUENCIES = ["D", "W", "M", "Y", "A"]
+SUPPORTED_FREQUENCIES = ["D", "B", "W", "M", "Y", "A"]
 
 DEFAULT_FREQUENCY = "D"
 
@@ -58,6 +59,7 @@ MODERN_FREQUENCY_ALIASES = {
     "A": "YE",  # Annual (year-end)
     "M": "ME",  # Month-end
     "W": "W",  # Weekly (no change)
+    "B": "B",  # Business day (no change)
     "D": "D",  # Daily (no change)
 }
 

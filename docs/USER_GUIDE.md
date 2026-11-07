@@ -48,7 +48,7 @@ model.generate_result()
 - **Data Type**: Weekly incident cases or cumulative
 - **Pattern**: Seasonal outbreaks with clear cyclical patterns
 - **Frequency**: Weekly observations
-- **Note**: Weekly data works well natively in v0.8.0
+- **Note**: Weekly data is kept at its native weekly index, on any weekday anchor (e.g. `W-MON`)
 
 **3. Vaccine-Preventable Diseases (with vaccination data)**
 - **Data Type**: Cases, deaths, AND vaccination coverage
@@ -150,7 +150,8 @@ container = DataContainer(data, window=1)  # window=1 for pre-cumulated data
 | Frequency | Code | Status | Notes |
 |-----------|------|--------|-------|
 | Daily | `D` | ✅ Native | Preferred, most tested |
-| Weekly | `W` | ✅ Native | Works well, set `window=1` |
+| Business day | `B` | ✅ Native | Weekends are not added; recovery lag = 10 business days |
+| Weekly | `W` | ✅ Native | Any weekday anchor (`W-MON`, `W-SUN`, ...); smoothing window capped at 3 |
 | Monthly | `M` | ✅ Native | Recovery lag = 14/30 months (0.47) |
 | Annual | `Y` | ✅ Native | Recovery lag = 14/365 years (0.0384) - v0.10.0+ |
 
@@ -174,33 +175,36 @@ weekly_data = pd.DataFrame({
     'C': cumulative_cases,
     'D': cumulative_deaths,
     'N': population
-}, index=pd.date_range('2020-01-01', periods=52, freq='W'))
+}, index=pd.date_range('2020-01-06', periods=52, freq='W-MON'))  # Mondays
 
 container = DataContainer(weekly_data, window=1)  # No smoothing needed
 ```
 
-### Monthly Data → Daily Forecast → Monthly Output
+Weekly data keeps its own rows and weekday anchor, and forecasts continue on
+the same weekday. The recovery lag is 2 weeks, and smoothing windows above 3
+weeks are capped at 3 (with a warning).
+
+### Monthly Data
+
+Monthly data stays on its monthly index. Forecast in months, then aggregate
+if you want a coarser series.
 
 ```python
-# Load monthly data (will be reindexed to daily internally)
-import warnings
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", message=".*FREQUENCY MISMATCH.*")
-    container = DataContainer(monthly_data, window=1)
+# Monthly data stays monthly (no reindexing to daily)
+container = DataContainer(monthly_data, window=1, frequency='ME')
 
-# Forecast in daily resolution
-model = Model(container, start="2020-01", stop="2021-12")
+model = Model(container, start="2020-01-31", stop="2021-12-31")
 model.create_model()
 model.fit_model(max_lag=3)
-model.forecast(steps=365)  # 1 year
+model.forecast(steps=12)  # 12 months
 model.run_simulations()
 model.generate_result()
 
-# Aggregate back to monthly
-monthly_forecast = model.aggregate_forecast(
-    "C", 
-    target_frequency="M",
-    aggregate_func="last",  # End-of-month value
+# Aggregate to years
+annual_forecast = model.aggregate_forecast(
+    "C",
+    target_frequency="Y",
+    aggregate_func="last",  # End-of-year value
     methods=["mean", "median"]
 )
 ```
@@ -541,7 +545,7 @@ print("C monotonic:", all(container.data['C'].diff() >= 0))
 
 ### See Also
 
-- **Notebook**: `examples/notebooks/07_incidence_mode_measles.ipynb`
+- **Notebook**: `examples/notebooks/06_incidence_mode_measles.ipynb`
 - **Tests**: `tests/integration/test_incidence_mode_workflow.py`
 
 ---
